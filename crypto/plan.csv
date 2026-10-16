@@ -2,5 +2,5 @@
 #valid_until_utc;2026-10-18 14:00
 #generated_utc;2026-10-16 23:50
 ID;SYMBOL;ORDER;ENTRY;SL;TP;RISK_PCT;NOTE
-TEST-BTC-1;BTCUSD;BUY_LIMIT;60000;58500;64500;0.5;test d'installation - prix volontairement loin
-TEST-ETH-1;ETHUSD;SELL_LIMIT;3200;3300;2950;0.5;test d'installation - prix volontairement loin
+TEST-BTC-1;BTCUSD;BUY_LIMIT;60000;58500;64500;;test d'installation - prix volontairement loin
+TEST-ETH-1;ETHUSD;SELL_LIMIT;3200;3300;2950;;test d'installation - prix volontairement loin
