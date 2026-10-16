@@ -8,12 +8,12 @@
 //| - envoie crypto/data.csv (branche live) pour le suivi et bilan   |
 //+------------------------------------------------------------------+
 #property copyright "Miguel - trading-plan"
-#property version   "1.00"
+#property version   "1.01"
 #property description "Lit le plan crypto sur GitHub, pose les ordres avec SL/TP, envoie les donnees du compte."
 
 #include <Trade\Trade.mqh>
 
-#define EA_VERSION "1.0"
+#define EA_VERSION "1.01"
 #define API_HOST   "https://api.github.com"
 
 //--- Reglages
@@ -525,6 +525,17 @@ int ReadPlan(PlanLine &lines[])
    return 1;
   }
 
+// Empreinte d'une ligne : si Claude corrige une ligne rejetée, elle est retentée
+double LineSig(PlanLine &p)
+  {
+   string s = p.sym + "|" + p.order + "|" + DoubleToString(p.entry, 8) + "|" + DoubleToString(p.sl, 8) + "|"
+              + DoubleToString(p.tp, 8) + "|" + DoubleToString(p.risk, 4);
+   ulong h = 5381;
+   for(int i = 0; i < StringLen(s); i++)
+      h = (h * 33 + (ulong)StringGetCharacter(s, i)) % 2147483647;
+   return (double)h;
+  }
+
 bool InPlan(PlanLine &lines[], const string id)
   {
    for(int i = 0; i < ArraySize(lines); i++)
@@ -536,6 +547,15 @@ bool InPlan(PlanLine &lines[], const string id)
 void PlaceLine(PlanLine &p)
   {
    string kDone = "P_" + p.id;
+   string kSig  = "S_" + p.id;
+   double sig   = LineSig(p);
+
+   // ligne rejetée puis modifiée dans le plan : on la retente
+   if(GvHas(kDone) && GvGet(kDone) < 0 && (!GvHas(kSig) || GvGet(kSig) != sig))
+     {
+      GvDel(kDone);
+      GvDel("F_" + p.id);
+     }
 
    if(GvHas(kDone))
      {
@@ -553,12 +573,14 @@ void PlaceLine(PlanLine &p)
      {
       SetState(p.id, "rejeté : symbole non autorisé (" + p.sym + ")");
       GvSet(kDone, -1);
+      GvSet(kSig, sig);
       return;
      }
    if(!SymbolSelect(p.sym, true))
      {
       SetState(p.id, "rejeté : symbole introuvable chez ce broker (" + p.sym + ")");
       GvSet(kDone, -1);
+      GvSet(kSig, sig);
       return;
      }
    int where = FindById(p.id);
@@ -618,6 +640,7 @@ void PlaceLine(PlanLine &p)
      {
       SetState(p.id, "rejeté : " + why);
       GvSet(kDone, -1);
+      GvSet(kSig, sig);
       return;
      }
    if(why != "")
@@ -654,6 +677,7 @@ void PlaceLine(PlanLine &p)
      {
       SetState(p.id, "rejeté : " + lotWhy);
       GvSet(kDone, -1);
+      GvSet(kSig, sig);
       return;
      }
 
@@ -709,6 +733,7 @@ void PlaceLine(PlanLine &p)
       if(fails >= 3)
         {
          GvSet(kDone, -1);
+      GvSet(kSig, sig);
          SetState(p.id, "rejeté : " + err);
          Notify(p.id + " " + err);
         }
