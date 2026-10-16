@@ -1,19 +1,19 @@
 #ver;1
-#generated_utc;2026-10-16 23:01
+#generated_utc;2026-10-16 23:20
 #server_utc_offset_h;3
 #times;BAR D1 = date serveur XM, BAR H1/M15/M5, POS et DEAL = heure UTC
 ACCOUNT;27743317;XM.COM-MT5;EUR;1220.02;1220.02;1220.02;DEMO
-EA;plan=2026-10-16;entrees=vendredi soir;erreur=;risque=5.00;maxpos=4;mode=confirmation M5;suivi=H1;ordres_claude=oui;dernier_ordre=SL de US500Cash# déplacé à 7722.00 (SL sous dernier sommet M15 7720.5, gain verrouille ~72 EUR);reveil=dernier réveil le 2026.10.16 15:51
+EA;plan=2026-10-16;entrees=vendredi soir;erreur=;risque=5.00;maxpos=4;mode=confirmation M5;suivi=H1;ordres_claude=oui;dernier_ordre=;reveil=
 #ZONE;symbole;sens;zone_bas;zone_haut;sl_jour;tp;tp1;touchee;etat
-ZONE;GOLD#;SELL;4188.00;4217.00;4232.00;4070.00;4110.00;1;ENTRÉE vente 0.01 lot à 4159.84, SL 4199.66, TP 4070.00 (ratio 2.25)
-ZONE;US100Cash#;SELL;30010.00;30160.00;30290.00;29420.00;29600.00;0;objectif atteint sans entrée
-ZONE;BRENTCash#;BUY;106.80;107.60;105.30;111.30;109.40;1;signal M5 ignoré : vendredi soir
-ZONE;GBPUSD#;BUY;1.32950;1.33250;1.32620;1.34400;1.33900;1;ENTRÉE achat 0.10 lot à 1.33194, SL 1.32965, TP 1.34400 (ratio 5.28) — volume réduit de 0.30 à 0.10 lot (marge du compte)
+ZONE;GOLD#;SELL;4188.00;4217.00;4232.00;4070.00;4110.00;0;en attente de la zone
+ZONE;US100Cash#;SELL;30010.00;30160.00;30290.00;29420.00;29600.00;0;en attente de la zone
+ZONE;BRENTCash#;BUY;106.80;107.60;105.30;111.30;109.40;0;en attente de la zone
+ZONE;GBPUSD#;BUY;1.32950;1.33250;1.32620;1.34400;1.33900;0;en attente de la zone
 ZONE;SILVER#;SELL;58.400;59.300;59.600;55.600;56.400;0;en attente de la zone
 ZONE;EURUSD#;SELL;1.12700;1.13000;1.13250;1.11400;1.12000;0;en attente de la zone
-ZONE;OILCash#;BUY;96.40;97.40;94.90;100.50;98.70;1;signal M5 ignoré : vendredi soir
-ZONE;US500Cash#;SELL;7762.00;7800.00;7812.00;7672.00;7700.00;0;objectif atteint sans entrée
-ZONE;NGASCash#;BUY;3.030;3.100;2.990;3.245;3.170;1;ENTRÉE achat 0.31 lot à 3.061, SL 2.995, TP 3.245 (ratio 2.79) — volume réduit de 0.78 à 0.31 lot (marge du compte)
+ZONE;OILCash#;BUY;96.40;97.40;94.90;100.50;98.70;0;en attente de la zone
+ZONE;US500Cash#;SELL;7762.00;7800.00;7812.00;7672.00;7700.00;0;en attente de la zone
+ZONE;NGASCash#;BUY;3.030;3.100;2.990;3.245;3.170;0;en attente de la zone
 ZONE;USDJPY#;SELL;158.500;158.950;159.200;157.300;157.700;0;en attente de la zone
 #POS;ticket;symbole;type;volume;ouverture_utc;prix_ouverture;sl;tp;prix_actuel;profit;swap;magic;commentaire
 #DEAL;ticket;heure_utc;symbole;type;entree;volume;prix;profit;swap;commission;magic;position;commentaire
