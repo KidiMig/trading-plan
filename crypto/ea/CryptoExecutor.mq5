@@ -1036,7 +1036,8 @@ string BuildData()
          continue;
       int dg = (int)SymbolInfoInteger(sym, SYMBOL_DIGITS);
       double m1 = 0.0;
-      OrderCalcMargin(ORDER_TYPE_BUY, sym, 1.0, SymbolInfoDouble(sym, SYMBOL_ASK), m1);
+      if(!OrderCalcMargin(ORDER_TYPE_BUY, sym, 1.0, SymbolInfoDouble(sym, SYMBOL_ASK), m1))
+         m1 = 0.0;
       s += "SPEC;" + sym + ";" + IntegerToString(dg) + ";" + DoubleToString(SymbolInfoDouble(sym, SYMBOL_POINT), dg) + ";"
            + DoubleToString(SymbolInfoDouble(sym, SYMBOL_TRADE_CONTRACT_SIZE), 4) + ";"
            + DoubleToString(SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN), 4) + ";" + DoubleToString(SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP), 4) + ";"
