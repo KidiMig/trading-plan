@@ -8,12 +8,12 @@
 //| - envoie crypto/data.csv (branche live) pour le suivi et bilan   |
 //+------------------------------------------------------------------+
 #property copyright "Miguel - trading-plan"
-#property version   "1.01"
+#property version   "1.02"
 #property description "Lit le plan crypto sur GitHub, pose les ordres avec SL/TP, envoie les donnees du compte."
 
 #include <Trade\Trade.mqh>
 
-#define EA_VERSION "1.01"
+#define EA_VERSION "1.02"
 #define API_HOST   "https://api.github.com"
 
 //--- Reglages
@@ -403,6 +403,25 @@ void CloseAllOurs()
 //+------------------------------------------------------------------+
 //| Taille de position                                               |
 //+------------------------------------------------------------------+
+// Marge que prendraient nos ordres en attente s'ils se déclenchaient tous
+double PendingMargin()
+  {
+   double total = 0.0;
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+     {
+      ulong t = OrderGetTicket(i);
+      if(t == 0 || OrderGetInteger(ORDER_MAGIC) != InpMagic)
+         continue;
+      long type = OrderGetInteger(ORDER_TYPE);
+      bool buy  = (type == ORDER_TYPE_BUY_LIMIT || type == ORDER_TYPE_BUY_STOP || type == ORDER_TYPE_BUY_STOP_LIMIT);
+      double m  = 0.0;
+      if(OrderCalcMargin(buy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, OrderGetString(ORDER_SYMBOL),
+                         OrderGetDouble(ORDER_VOLUME_CURRENT), OrderGetDouble(ORDER_PRICE_OPEN), m))
+         total += m;
+     }
+   return total;
+  }
+
 double LotsForRisk(const string sym, const bool isBuy, const double entry, const double sl, const double riskPct, string &why)
   {
    ENUM_ORDER_TYPE t = isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
@@ -430,14 +449,14 @@ double LotsForRisk(const string sym, const bool isBuy, const double entry, const
    double margin = 0.0;
    if(OrderCalcMargin(t, sym, lots, entry, margin) && margin > 0.0)
      {
-      double freeM = AccountInfoDouble(ACCOUNT_MARGIN_FREE) * 0.8;
+      double freeM = (AccountInfoDouble(ACCOUNT_MARGIN_FREE) - PendingMargin()) * 0.8;
       if(margin > freeM)
         {
          lots = MathFloor(lots * freeM / margin / step + 1e-9) * step;
          if(lots < vmin)
            {
-            why = "marge insuffisante pour le lot minimum";
-            return 0.0;
+            why = "marge insuffisante pour le lot minimum (ordres déjà en attente compris)";
+            return -1.0; // temporaire : la marge peut se libérer
            }
         }
      }
@@ -673,7 +692,12 @@ void PlaceLine(PlanLine &p)
    double riskPct = (p.risk > 0.0) ? MathMin(p.risk, InpRiskPct) : InpRiskPct;
    string lotWhy = "";
    double lots = LotsForRisk(p.sym, isBuy, entry, sl, riskPct, lotWhy);
-   if(lots <= 0.0)
+   if(lots < 0.0)
+     {
+      SetState(p.id, "en attente : " + lotWhy);
+      return;
+     }
+   if(lots == 0.0)
      {
       SetState(p.id, "rejeté : " + lotWhy);
       GvSet(kDone, -1);
