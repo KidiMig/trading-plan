@@ -8,12 +8,12 @@
 //| - envoie crypto/data.csv (branche live) pour le suivi et bilan   |
 //+------------------------------------------------------------------+
 #property copyright "Miguel - trading-plan"
-#property version   "1.02"
+#property version   "1.10"
 #property description "Lit le plan crypto sur GitHub, pose les ordres avec SL/TP, envoie les donnees du compte."
 
 #include <Trade\Trade.mqh>
 
-#define EA_VERSION "1.02"
+#define EA_VERSION "1.10"
 #define API_HOST   "https://api.github.com"
 
 //--- Reglages
@@ -42,6 +42,14 @@ input int    InpPlanEveryMin = 5;        // Lecture du plan et des actions (minu
 input int    InpDataEveryMin = 15;       // Envoi des données (minutes)
 input bool   InpNotify       = true;     // Notifications push MT5
 
+input group "Réveil de Claude (tâche Surveillance crypto déclenchée par API)"
+input bool   InpWakeEnabled  = true;     // Réveiller Claude quand il se passe quelque chose sur un trade
+input string InpWakeURL      = "";       // Adresse de la tâche (…/trig_…/fire)
+input string InpWakeToken    = "";       // Jeton de la tâche (sk-ant-oat01-…)
+input int    InpWakeMinMin   = 10;       // Délai minimum entre deux réveils (minutes)
+input int    InpWakeMaxDay   = 20;       // Réveils maximum par jour UTC
+input bool   InpWakeTest     = false;    // Réveil de test au démarrage (remettre à false ensuite)
+
 //--- Une ligne du plan
 struct PlanLine
   {
@@ -69,6 +77,9 @@ string   g_lastError       = "";
 string   g_lastEvent       = "";
 string   g_lastPush        = "jamais";
 string   g_zones           = "";  // lignes ZONE pour data.csv
+string   g_wakePending     = "";
+datetime g_wakeLast        = 0;
+string   g_wakeStatus      = "désactivé";
 string   g_stIds[];
 string   g_stMsg[];
 
@@ -1019,6 +1030,201 @@ void Manage()
   }
 
 //+------------------------------------------------------------------+
+//| Réveil de Claude : appelle la tâche « Surveillance crypto » par  |
+//| API dès qu'un événement compte sur un trade ouvert.              |
+//+------------------------------------------------------------------+
+bool WakeConfigured()
+  {
+   return InpWakeEnabled && StringLen(InpWakeURL) > 10 && StringLen(InpWakeToken) > 10;
+  }
+
+bool Once(const string key)
+  {
+   if(GvHas(key))
+      return false;
+   GvSet(key, (double)TimeGMT());
+   return true;
+  }
+
+double AtrH1(const string sym)
+  {
+   MqlRates r[];
+   int n = CopyRates(sym, PERIOD_H1, 1, 15, r);
+   if(n < 15)
+      return 0.0;
+   double sum = 0.0;
+   for(int i = 1; i < n; i++)
+      sum += MathMax(r[i].high, r[i - 1].close) - MathMin(r[i].low, r[i - 1].close);
+   return sum / (n - 1);
+  }
+
+void QueueWake(const string msg)
+  {
+   g_wakePending += msg;
+   if(StringLen(g_wakePending) > 3000)
+      g_wakePending = StringSubstr(g_wakePending, StringLen(g_wakePending) - 3000);
+  }
+
+void CheckEvents()
+  {
+   if(!WakeConfigured())
+      return;
+   string msg = "";
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+     {
+      ulong tk = PositionGetTicket(i);
+      if(tk == 0 || PositionGetInteger(POSITION_MAGIC) != InpMagic)
+         continue;
+      string   sym    = PositionGetString(POSITION_SYMBOL);
+      bool     buy    = (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY);
+      double   open   = PositionGetDouble(POSITION_PRICE_OPEN);
+      double   sl     = PositionGetDouble(POSITION_SL);
+      double   pl     = PositionGetDouble(POSITION_PROFIT) + PositionGetDouble(POSITION_SWAP);
+      long     pid    = PositionGetInteger(POSITION_IDENTIFIER);
+      datetime opened = (datetime)PositionGetInteger(POSITION_TIME);
+      double   bid    = SymbolInfoDouble(sym, SYMBOL_BID);
+      double   ask    = SymbolInfoDouble(sym, SYMBOL_ASK);
+      int      dg     = (int)SymbolInfoInteger(sym, SYMBOL_DIGITS);
+      double   price  = buy ? bid : ask;
+      string   k      = "W_" + IntegerToString((long)tk) + "_";
+      string   head   = sym + " (ticket " + IntegerToString((long)tk) + ", " + (buy ? "achat" : "vente") + " à "
+                        + DoubleToString(open, dg) + ", prix " + DoubleToString(price, dg) + ", SL " + DoubleToString(sl, dg)
+                        + ", P/L " + DoubleToString(pl, 2) + " " + AccountInfoString(ACCOUNT_CURRENCY) + ") : ";
+
+      // 1. nouvelle position
+      if(Once(k + "open"))
+         msg += head + "nouvelle position ouverte.\n";
+
+      // risque initial
+      double risk = GvHas("R_" + IntegerToString(pid)) ? GvGet("R_" + IntegerToString(pid)) : 0.0;
+      if(risk <= 0.0 && sl > 0.0 && ((buy && sl < open) || (!buy && sl > open)))
+         risk = MathAbs(open - sl);
+      bool   locked = (sl > 0.0) && (buy ? sl >= open : sl <= open);
+      double gain   = buy ? bid - open : open - ask;
+
+      // 2. paliers de gain
+      if(risk > 0.0)
+        {
+         if(gain >= 0.5 * risk && Once(k + "r05"))
+            msg += head + "le gain atteint 0,5R.\n";
+         if(gain >= 1.0 * risk && Once(k + "r1"))
+            msg += head + "le gain atteint 1R (l'EA remonte le stop au prix d'entrée).\n";
+         if(gain >= 2.0 * risk && Once(k + "r2"))
+            msg += head + "le gain atteint 2R.\n";
+        }
+
+      // 3. prix proche du stop (moins de 20 % de la distance de départ)
+      if(risk > 0.0 && sl > 0.0 && !locked && MathAbs(price - sl) < 0.2 * risk && Once(k + "nearsl"))
+         msg += head + "le prix est à moins de 20 % du stop.\n";
+
+      // 4. élan H1 qui s'inverse (au plus toutes les 2 heures par position)
+      datetime bar1 = iTime(sym, PERIOD_H1, 1);
+      if(bar1 > opened)
+        {
+         bool rev = buy ? (iClose(sym, PERIOD_H1, 1) < iLow(sym, PERIOD_H1, 2))
+                        : (iClose(sym, PERIOD_H1, 1) > iHigh(sym, PERIOD_H1, 2));
+         string kl   = k + "h1";
+         double last = GvHas(kl) ? GvGet(kl) : 0.0;
+         if(rev && (double)bar1 - last >= 7200)
+           {
+            GvSet(kl, (double)bar1);
+            msg += head + "la dernière bougie H1 a clôturé " + (buy ? "sous le plus bas" : "au-dessus du plus haut")
+                   + " de la précédente (élan qui s'inverse).\n";
+           }
+        }
+
+      // 5. mouvement brutal contre la position : plus d'1 ATR H1 en 15 minutes (au plus une fois par heure)
+      double atr = AtrH1(sym);
+      MqlRates m5[];
+      if(atr > 0.0 && CopyRates(sym, PERIOD_M5, 0, 4, m5) == 4)
+        {
+         double move = buy ? (m5[0].open - bid) : (ask - m5[0].open);
+         string kb   = k + "brut";
+         double last = GvHas(kb) ? GvGet(kb) : 0.0;
+         if(move >= atr && (double)TimeGMT() - last >= 3600)
+           {
+            GvSet(kb, (double)TimeGMT());
+            msg += head + StringFormat("mouvement brutal contre la position : %s en 15 minutes (ATR H1 %s).\n",
+                                       DoubleToString(move, dg), DoubleToString(atr, dg));
+           }
+        }
+     }
+   if(msg != "")
+      QueueWake(msg);
+  }
+
+string JsonEscape(string s)
+  {
+   StringReplace(s, "\\", "\\\\");
+   StringReplace(s, "\"", "\\\"");
+   StringReplace(s, "\n", "\\n");
+   StringReplace(s, "\r", "");
+   StringReplace(s, "\t", " ");
+   return s;
+  }
+
+void SendWake()
+  {
+   if(!WakeConfigured())
+     {
+      g_wakeStatus = InpWakeEnabled ? "non configuré (adresse ou jeton manquant)" : "désactivé";
+      return;
+     }
+   if(g_wakePending == "")
+      return;
+   string day = UtcDayKey();
+   double done = GvHas("WN_" + day) ? GvGet("WN_" + day) : 0.0;
+   if(done >= InpWakeMaxDay)
+     {
+      g_wakeStatus  = "limite de " + IntegerToString(InpWakeMaxDay) + " réveils atteinte aujourd'hui (UTC)";
+      g_wakePending = "";
+      return;
+     }
+   if(g_wakeLast > 0 && TimeLocal() - g_wakeLast < InpWakeMinMin * 60)
+      return; // trop tôt : on regroupe avec les événements suivants
+
+   PushData(); // données fraîches pour Claude avant de le réveiller
+
+   string text = "Événements détectés par CryptoExecutor à " + Fmt(TimeGMT()) + " UTC :\n" + g_wakePending;
+   string body = "{\"text\":\"" + JsonEscape(text) + "\"}";
+   char   data[], result[];
+   string rh;
+   int n = StringToCharArray(body, data, 0, WHOLE_ARRAY, CP_UTF8);
+   if(n > 0)
+      ArrayResize(data, n - 1);
+   string headers = "Authorization: Bearer " + InpWakeToken + "\r\n"
+                    + "anthropic-beta: experimental-cc-routine-2026-04-01\r\n"
+                    + "anthropic-version: 2023-06-01\r\n"
+                    + "Content-Type: application/json\r\n";
+   ResetLastError();
+   int code = WebRequest("POST", InpWakeURL, headers, 20000, data, result, rh);
+   g_wakeLast = TimeLocal();
+   if(code == -1)
+     {
+      int err = GetLastError();
+      g_wakeStatus = (err == 4014) ? "réveil bloqué : ajoute https://api.anthropic.com dans Outils > Options > Expert Advisors"
+                                   : "réveil impossible (WebRequest erreur " + IntegerToString(err) + ")";
+      return; // on garde les événements pour réessayer
+     }
+   if(code >= 200 && code < 300)
+     {
+      GvSet("WN_" + day, done + 1.0);
+      g_wakeStatus  = "dernier réveil le " + Fmt(TimeGMT()) + " UTC";
+      Log("réveil de Claude envoyé : " + g_wakePending);
+      g_wakePending = "";
+      return;
+     }
+   string resp = CharArrayToString(result, 0, WHOLE_ARRAY, CP_UTF8);
+   string m    = JsonFirst(resp, "message");
+   if(code == 401 || code == 403)
+      g_wakeStatus = "réveil refusé : jeton ou adresse de la tâche incorrects (HTTP " + IntegerToString(code) + ")";
+   else
+      g_wakeStatus = "réveil refusé (HTTP " + IntegerToString(code) + (m != "" ? " : " + m : "") + ")";
+   if(code != 429)
+      g_wakePending = ""; // erreur définitive : on n'insiste pas
+  }
+
+//+------------------------------------------------------------------+
 //| Données envoyées dans GitHub                                     |
 //+------------------------------------------------------------------+
 string OrderTypeName(const long type)
@@ -1076,7 +1282,7 @@ string BuildData()
         + ";perte_max_jour=" + DoubleToString(InpMaxDailyLossPct, 2) + ";rr_min=" + DoubleToString(InpMinRR, 2)
         + ";solde_debut_jour=" + DoubleToString(GvHas("D_" + day) ? GvGet("D_" + day) : 0.0, 2)
         + ";stop_jour=" + (Halted() ? "1" : "0") + ";trading_algo=" + (TradingAllowed() ? "1" : "0")
-        + ";erreur=" + Clean(g_lastError) + ";dernier_evenement=" + Clean(g_lastEvent) + "\n";
+        + ";reveil=" + Clean(g_wakeStatus) + ";erreur=" + Clean(g_lastError) + ";dernier_evenement=" + Clean(g_lastEvent) + "\n";
 
    for(int i = 0; i < ArraySize(g_symbols); i++)
      {
@@ -1192,6 +1398,7 @@ void ShowPanel()
    s += StringFormat("Positions + ordres EA : %d / %d   |   risque %.1f %%   |   stop jour %.1f %%%s\n",
                      CountOurs(), InpMaxPositions, InpRiskPct, InpMaxDailyLossPct, Halted() ? "  (ATTEINT)" : "");
    s += "Dernier envoi des données : " + g_lastPush + "\n";
+   s += "Réveil de Claude : " + g_wakeStatus + "\n";
    if(!TradingAllowed())
       s += "!! Trading algo désactivé : active le bouton « Trading algo »\n";
    if(g_lastError != "")
@@ -1217,6 +1424,9 @@ int OnInit()
    g_trade.LogLevel(LOG_LEVEL_ERRORS);
    g_lastPlan = 0;
    g_lastData = 0;
+   g_wakeStatus = WakeConfigured() ? "prêt" : (InpWakeEnabled ? "non configuré (adresse ou jeton manquant)" : "désactivé");
+   if(InpWakeTest && WakeConfigured())
+      QueueWake("Test de connexion envoyé par CryptoExecutor au démarrage. Lis juste crypto/data.csv et réponds « Réveil OK » en une ligne avec le solde du compte.\n");
    EventSetTimer(10);
    Log("démarré sur le compte " + IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN)) + " (" + AccountInfoString(ACCOUNT_SERVER) + ")");
    ShowPanel();
@@ -1243,6 +1453,8 @@ void OnTimer()
      }
    if(TradingAllowed())
       Manage();
+   CheckEvents();
+   SendWake();
 
    datetime now = TimeLocal();
    if(now - g_lastPlan >= InpPlanEveryMin * 60)

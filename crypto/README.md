@@ -21,6 +21,18 @@ Tâche « Plan crypto du jour » (Claude, 7j/7)
    (le même que PlanExecutor : droits Contents lecture/écriture sur `kidimig/trading-plan`).
 4. Bouton « Trading algo » en vert. Le panneau en haut à gauche du graphique affiche l'état.
 
+## Réveil de Claude (comme PlanExecutor)
+
+Dès qu'un événement compte sur une position de l'EA, CryptoExecutor envoie ses données puis réveille
+la tâche « Surveillance crypto » par API (en plus de son passage horaire) :
+nouvelle position, gain de 0,5R / 1R / 2R, prix à moins de 20 % du stop, bougie H1 qui inverse l'élan,
+mouvement de plus d'1 ATR H1 contre la position en 15 minutes.
+Au plus un réveil toutes les 10 minutes (les événements sont regroupés) et 20 par jour.
+
+Réglages : adresse de la tâche (`…/trig_…/fire`) et son jeton (`sk-ant-oat01-…`), à générer dans les
+paramètres de la tâche « Surveillance crypto ». Ajouter `https://api.anthropic.com` à la liste WebRequest.
+« Réveil de test au démarrage » = true une fois pour vérifier (réponse attendue : « Réveil OK »), puis false.
+
 ## Réglages principaux
 
 | Réglage | Défaut | Rôle |
@@ -65,7 +77,7 @@ Chaque ID n'est appliqué qu'une fois ; un fichier daté de plus de 2 jours est 
 
 - `#generated_utc;AAAA-MM-JJ HH:MM`
 - `ACCOUNT;login;serveur;devise;solde;equity;marge_libre;DEMO|REAL`
-- `EA;version=…;magic=…;plan=…;risque=…;maxpos=…;perte_max_jour=…;rr_min=…;solde_debut_jour=…;stop_jour=0|1;trading_algo=0|1;erreur=…;dernier_evenement=…`
+- `EA;version=…;magic=…;plan=…;risque=…;maxpos=…;perte_max_jour=…;rr_min=…;solde_debut_jour=…;stop_jour=0|1;trading_algo=0|1;reveil=…;erreur=…;dernier_evenement=…`
 - `SPEC;symbole;digits;point;taille_contrat;lot_min;pas_lot;lot_max;stops_level;tick_size;tick_value;marge_1_lot`
 - `ZONE;id;symbole;ordre;entree;sl;tp;risque;etat` (lignes du plan en cours et ce que l'EA en a fait)
 - `POS;ticket;symbole;BUY|SELL;volume;ouverture_utc;prix_ouverture;sl;tp;prix_actuel;profit;swap;magic;commentaire`
