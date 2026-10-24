@@ -1,6 +1,6 @@
 #date;2026-10-24
 #valid_until_utc;2026-10-25 14:00
-#generated_utc;2026-10-24 11:20
+#generated_utc;2026-10-24 14:25
 ID;SYMBOL;ORDER;ENTRY;SL;TP;RISK_PCT;NOTE
-20261024-BTC-1;BTCUSD;SELL_LIMIT;81000;81500;79750;;retour sous sommet H1 81016 tendance baissière D1 H4 dist 0,6 ATR H4
-20261024-ETH-1;ETHUSD;SELL_LIMIT;2385;2405;2330;;retour sous sommet H4 2387 sommets descendants dist 0,6 ATR H4
+20261024-BTC-2;BTCUSD;SELL_LIMIT;81000;81500;79750;;retour sous sommet H1 81016 tendance baissière D1 H4 nouvel essai après rejet dist 0,5 ATR H4
+20261024-ETH-2;ETHUSD;SELL_LIMIT;2385;2405;2330;;retour sous sommet H1 2387 sommets H4 descendants nouvel essai après rejet dist 0,6 ATR H4
