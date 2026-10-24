@@ -1,0 +1,8 @@
+A COLLER DANS LA TACHE "SURVEILLANCE CRYPTO"
+Emplacement : juste apres le point 2 (Controles de sante), avant le point 3.
+Remplace aussi, dans le point 2, les deux premiers tirets par "(hors plage : voir ci-dessous)".
+
+Plage d'ouverture. Le MT5 crypto n'est ouvert que du vendredi 17h00 au dimanche 20h00 (heure de Cayenne), car le serveur ne peut faire tourner qu'un MT5 a la fois. Fais ce test AVANT les controles de sante :
+- Hors plage (du dimanche 20h00 au vendredi 17h00) : un EA muet ou un data.csv ancien est normal. Reponds uniquement « RAS » sans notification et sans rien ecrire dans le depot. Une seule exception, au premier passage apres la fermeture (dimanche 20h a 22h) : si le dernier data.csv montre des lignes POS ou ORDER de magic 20261016, signale-le en une ligne : « MT5 crypto ferme avec BTCUSD achat ouvert, protege par son SL a X. » (symbole, sens, SL, une ligne par position).
+- Dans la plage (du vendredi 17h00 au dimanche 20h00) : applique les controles de sante et la suite normalement. Le vendredi entre 17h00 et 18h00, un data.csv encore ancien est normal (l'EA demarre) : ne signale le silence qu'a partir de 18h00.
+- Un reveil de l'EA par API prouve que MT5 est ouvert : traite-le toujours, meme hors plage.

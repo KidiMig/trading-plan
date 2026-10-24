@@ -1,0 +1,21 @@
+MODIFICATIONS A FAIRE (heure de Cayenne)
+
+A. Tache de surveillance (toutes les heures + reveil EA)
+ 1. Ouvre la tache planifiee de surveillance crypto.
+ 2. Colle le contenu de 1_surveillance_ajout.txt dans les instructions, juste avant le point 3.
+ 3. Enregistre. Rien d'autre ne change : la frequence horaire reste la meme.
+
+B. Tache du plan (7h55)
+ 1. Ouvre la tache planifiee du plan crypto.
+ 2. Colle le contenu de 2_plan_ajout.txt tout en haut des instructions.
+ 3. Ajoute un declencheur le vendredi a 16h45 (en plus de 7h55 chaque jour).
+ 4. Enregistre.
+
+C. Sur ton serveur
+ 1. Vendredi, a partir de 17h00 : ferme le MT5 XM, ouvre le MT5 crypto (Pepperstone), verifie que CryptoExecutor est actif (trading algo = ON, smiley en haut a droite du graphique).
+ 2. Dimanche avant 20h00 : verifie qu'il n'y a plus de position ni d'ordre crypto ouvert (ferme ou annule a la main si besoin), puis ferme le MT5 crypto et rouvre le MT5 XM.
+ 3. Si tu veux changer l'heure de fermeture du dimanche, remplace "20h00" (et "23h00 UTC") dans les deux textes.
+
+D. Verification
+ - Vendredi vers 18h30 : la surveillance ne doit pas signaler "EA muet".
+ - Lundi : la surveillance doit repondre "RAS" sans notification.

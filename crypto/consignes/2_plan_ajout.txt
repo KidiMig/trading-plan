@@ -1,0 +1,8 @@
+A COLLER DANS LA TACHE "PLAN CRYPTO" (celle de 7h55, heure de Cayenne)
+Emplacement : tout en haut des instructions, avant la partie sur l'ecriture du plan.
+
+Plage d'ouverture. Le MT5 crypto n'est ouvert que du vendredi 17h00 au dimanche 20h00 (heure de Cayenne), car le serveur ne peut faire tourner qu'un MT5 a la fois.
+- Du lundi au jeudi : n'ecris pas de plan, ne touche pas a crypto/plan.csv, reponds « Pas de plan : MT5 crypto ferme. »
+- Le samedi et le dimanche a 7h55 : ecris le plan normalement, mais la validite ("valable jusqu'au") ne doit pas depasser le dimanche 20h00 heure de Cayenne (23h00 UTC). Ne mets que des ordres qui ont une chance reelle de se declencher et de se jouer avant cette heure.
+- Le vendredi : la tache de 7h55 est trop tot (MT5 ouvre a 17h). Programme un passage supplementaire le vendredi a 16h45 (heure de Cayenne) qui ecrit le plan du week-end, valable jusqu'au dimanche 20h00 (23h00 UTC).
+- Le dimanche a 7h55 : prefere des ordres qui se clotureront avant 20h00. Aucune position ne doit rester ouverte apres la fermeture.
