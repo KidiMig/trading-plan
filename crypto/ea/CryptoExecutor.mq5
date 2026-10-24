@@ -8,12 +8,12 @@
 //| - envoie crypto/data.csv (branche live) pour le suivi et bilan   |
 //+------------------------------------------------------------------+
 #property copyright "Miguel - trading-plan"
-#property version   "1.10"
+#property version   "1.11"
 #property description "Lit le plan crypto sur GitHub, pose les ordres avec SL/TP, envoie les donnees du compte."
 
 #include <Trade\Trade.mqh>
 
-#define EA_VERSION "1.10"
+#define EA_VERSION "1.11"
 #define API_HOST   "https://api.github.com"
 
 //--- Reglages
@@ -437,10 +437,24 @@ double LotsForRisk(const string sym, const bool isBuy, const double entry, const
   {
    ENUM_ORDER_TYPE t = isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
    double loss1 = 0.0;
+   ResetLastError();
    if(!OrderCalcProfit(t, sym, 1.0, entry, sl, loss1) || loss1 >= 0.0)
      {
-      why = "calcul du risque impossible";
-      return 0.0;
+      // Secours (1.11) : le week-end, OrderCalcProfit peut échouer (conversion USD -> devise du compte).
+      // On calcule alors la perte avec la valeur du tick fournie par le broker.
+      int    calcErr = GetLastError();
+      double tickSz  = SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_SIZE);
+      double tickVal = SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_VALUE_LOSS);
+      if(tickVal <= 0.0)
+         tickVal = SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_VALUE);
+      if(tickSz <= 0.0 || tickVal <= 0.0 || entry == sl)
+        {
+         why = StringFormat("calcul du risque impossible (erreur %d, valeur du tick %.6f)", calcErr, tickVal);
+         return 0.0;
+        }
+      loss1 = -MathAbs(entry - sl) / tickSz * tickVal;
+      Log(StringFormat("%s : OrderCalcProfit en échec (erreur %d), risque calculé avec la valeur du tick (%.2f %s pour 1 lot)",
+                       sym, calcErr, MathAbs(loss1), AccountInfoString(ACCOUNT_CURRENCY)));
      }
    double riskMoney = AccountInfoDouble(ACCOUNT_BALANCE) * riskPct / 100.0;
    double step = SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP);
@@ -558,7 +572,8 @@ int ReadPlan(PlanLine &lines[])
 // Empreinte d'une ligne : si Claude corrige une ligne rejetée, elle est retentée
 double LineSig(PlanLine &p)
   {
-   string s = p.sym + "|" + p.order + "|" + DoubleToString(p.entry, 8) + "|" + DoubleToString(p.sl, 8) + "|"
+   // la version fait partie de l'empreinte : après une mise à jour de l'EA, les lignes rejetées sont retentées une fois
+   string s = EA_VERSION + "|" + p.sym + "|" + p.order + "|" + DoubleToString(p.entry, 8) + "|" + DoubleToString(p.sl, 8) + "|"
               + DoubleToString(p.tp, 8) + "|" + DoubleToString(p.risk, 4);
    ulong h = 5381;
    for(int i = 0; i < StringLen(s); i++)
