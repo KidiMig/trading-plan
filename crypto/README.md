@@ -62,6 +62,17 @@ ID;SYMBOL;ORDER;ENTRY;SL;TP;RISK_PCT;NOTE
 - Rejets automatiques : SL/TP incohérents, ratio < minimum, SL trop proche, lot minimum trop risqué,
   symbole non autorisé. La raison apparaît sur le panneau, dans le journal et dans les lignes `ZONE` de `data.csv`.
 
+### Règles de construction du plan (depuis le 24/10)
+
+1. **Mouvement pas encore joué** : pour un ordre en attente, la distance entre le prix actuel et le TP vaut au moins
+   1 fois le risque (entrée → SL), et le TP n'a pas été touché depuis la formation du niveau d'entrée.
+   L'EA (1.12) le vérifie aussi en direct : il refuse la ligne sinon, et annule un ordre limite dont le TP est
+   atteint avant l'entrée (« objectif atteint sans entrée »). La ligne est alors abandonnée définitivement.
+2. **Stop large, taille réduite** : SL au-delà de la structure ET à au moins 1 ATR H4 de l'entrée.
+   Le risque en € reste le même, c'est la taille qui baisse.
+3. **Un seul pari par direction** : BTC et ETH bougent ensemble. Si les deux donnent un signal dans le même sens,
+   une seule ligne, celle qui a la meilleure structure.
+
 ## `crypto/actions.csv`
 
 ```

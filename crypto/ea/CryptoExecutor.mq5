@@ -8,12 +8,12 @@
 //| - envoie crypto/data.csv (branche live) pour le suivi et bilan   |
 //+------------------------------------------------------------------+
 #property copyright "Miguel - trading-plan"
-#property version   "1.11"
+#property version   "1.12"
 #property description "Lit le plan crypto sur GitHub, pose les ordres avec SL/TP, envoie les donnees du compte."
 
 #include <Trade\Trade.mqh>
 
-#define EA_VERSION "1.11"
+#define EA_VERSION "1.12"
 #define API_HOST   "https://api.github.com"
 
 //--- Reglages
@@ -602,6 +602,13 @@ void PlaceLine(PlanLine &p)
       GvDel("F_" + p.id);
      }
 
+   // objectif atteint avant l'entrée (1.12) : la ligne est abandonnée définitivement
+   if(GvHas("T_" + p.id))
+     {
+      SetState(p.id, "objectif atteint sans entrée : ligne abandonnée");
+      return;
+     }
+
    if(GvHas(kDone))
      {
       if(GvGet(kDone) < 0)
@@ -712,6 +719,23 @@ void PlaceLine(PlanLine &p)
      {
       SetState(p.id, "en attente : " + wait);
       return;
+     }
+
+   //--- 1.12 : le mouvement ne doit pas être déjà joué. Pour un ordre en attente, la distance
+   //    entre le prix actuel et l'objectif doit valoir au moins 1 fois le risque.
+   if(!market)
+     {
+      double remaining = isBuy ? (tp - tk.bid) : (tk.ask - tp);
+      double riskDist  = MathAbs(entry - sl);
+      if(remaining < riskDist)
+        {
+         SetState(p.id, StringFormat("rejeté : objectif presque atteint avant l'entrée (reste %s, risque %s)",
+                                     DoubleToString(MathMax(remaining, 0.0), digits), DoubleToString(riskDist, digits)));
+         GvSet(kDone, -1);
+         GvSet(kSig, sig);
+         GvSet("T_" + p.id, 1);
+         return;
+        }
      }
 
    //--- taille
@@ -1001,6 +1025,37 @@ void Manage()
       CloseAllOurs();
       Notify(StringFormat("stop journalier : perte de %.1f %% atteinte, tout est fermé jusqu'à 0h UTC", (start - eq) / start * 100.0));
       g_lastData = 0;
+     }
+
+   //--- 1.12 : ordre limite dont l'objectif est atteint sans entrée -> annulé
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+     {
+      ulong t = OrderGetTicket(i);
+      if(t == 0 || OrderGetInteger(ORDER_MAGIC) != InpMagic)
+         continue;
+      long   type = OrderGetInteger(ORDER_TYPE);
+      if(type != ORDER_TYPE_BUY_LIMIT && type != ORDER_TYPE_SELL_LIMIT)
+         continue;
+      string sym = OrderGetString(ORDER_SYMBOL);
+      double tp  = OrderGetDouble(ORDER_TP);
+      if(tp <= 0.0)
+         continue;
+      bool hit = (type == ORDER_TYPE_BUY_LIMIT) ? (SymbolInfoDouble(sym, SYMBOL_BID) >= tp)
+                                                : (SymbolInfoDouble(sym, SYMBOL_ASK) <= tp);
+      if(!hit)
+         continue;
+      string id = IdFromComment(OrderGetString(ORDER_COMMENT));
+      if(g_trade.OrderDelete(t))
+        {
+         if(id != "")
+           {
+            GvSet("T_" + id, 1);
+            SetState(id, "objectif atteint sans entrée : ordre annulé");
+           }
+         Notify(sym + " : objectif " + DoubleToString(tp, (int)SymbolInfoInteger(sym, SYMBOL_DIGITS))
+                + " atteint sans entrée, ordre " + id + " annulé");
+         g_lastData = 0;
+        }
      }
 
    if(!InpBreakEven)
