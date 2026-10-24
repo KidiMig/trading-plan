@@ -1,9 +1,9 @@
 #ver;1
-#generated_utc;2026-10-24 02:47
+#generated_utc;2026-10-24 08:47
 #server_utc_offset_h;3
 #times;BAR D1 = date serveur XM, BAR H1/M15/M5, POS et DEAL = heure UTC
 ACCOUNT;27743317;XM.COM-MT5;EUR;1557.66;1557.66;1557.66;DEMO
-EA;plan=2026-10-23;entrees=vendredi soir;erreur=;risque=5.00;maxpos=4;mode=confirmation M5;suivi=H1;ordres_claude=oui;dernier_ordre=TP de OILCash# déplacé à 103.40 (Remise du TP initial retire par erreur);reveil=dernier réveil le 2026.10.23 13:21
+EA;plan=2026-10-23;entrees=week-end;erreur=;risque=5.00;maxpos=4;mode=confirmation M5;suivi=H1;ordres_claude=oui;dernier_ordre=TP de OILCash# déplacé à 103.40 (Remise du TP initial retire par erreur);reveil=dernier réveil le 2026.10.23 13:21
 #ZONE;symbole;sens;zone_bas;zone_haut;sl_jour;tp;tp1;touchee;etat
 ZONE;GOLD#;SELL;4046.00;4068.00;4094.00;3960.00;3996.00;0;en attente de la zone
 ZONE;BRENTCash#;BUY;113.90;114.90;112.40;118.70;116.00;0;en attente de la zone
