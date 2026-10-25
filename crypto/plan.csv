@@ -1,5 +1,4 @@
-#date;2026-10-24
-#valid_until_utc;2026-10-25 14:00
-#generated_utc;2026-10-24 14:40
+#date;2026-10-25
+#valid_until_utc;2026-10-26 14:00
+#generated_utc;2026-10-25 11:05
 ID;SYMBOL;ORDER;ENTRY;SL;TP;RISK_PCT;NOTE
-20261024-BTC-3;BTCUSD;SELL_LIMIT;80400;81100;79050;;retest du support cassé 80300-80450 devenu résistance - SL 1 ATR H4 au-dessus des sommets H1 du jour - sorties ETF
