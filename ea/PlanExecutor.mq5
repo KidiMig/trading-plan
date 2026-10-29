@@ -1,4 +1,4 @@
-//+------------------------------------------------------------------+
+﻿//+------------------------------------------------------------------+
 //|                                              PlanExecutor.mq5    |
 //|  Exécute le « Plan de trading du jour » publié chaque matin      |
 //|  sur GitHub : zones journalières + confirmation SMC en M15.       |
@@ -17,7 +17,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.43"
+#property version   "1.44"
 
 #include <Trade\Trade.mqh>
 
@@ -70,7 +70,7 @@ input bool   RoutineEnabled     = true;  // Réveiller Claude quand il se passe 
 input string RoutineURL         = "";    // Adresse de la routine (…/routines/trig_…/fire)
 input string RoutineToken       = "";    // Jeton de la routine (sk-ant-oat01-…)
 input int    RoutineMinMinutes  = 10;    // Délai minimum entre deux réveils (minutes)
-input int    RoutineMaxPerDay   = 15;    // Réveils maximum par jour
+input int    RoutineMaxPerDay   = 30;    // Réveils maximum par jour
 input bool   RoutineTest        = false; // Envoyer un réveil de test au démarrage (remettre à false ensuite)
 
 //--- Une zone du plan
@@ -608,6 +608,14 @@ void TryEnter(Zone &z, const MqlRates &r[])
       z.status = "signal ignoré : position déjà ouverte sur ce symbole";
       return;
      }
+   // v1.44 : pas d'entrée si le prix a déjà dépassé le TP1 (le stop passerait au prix d'entrée aussitôt)
+   double bidNow = SymbolInfoDouble(z.sym, SYMBOL_BID);
+   double askNow = SymbolInfoDouble(z.sym, SYMBOL_ASK);
+   if(z.tp1 > 0 && ((z.dir == -1 && bidNow <= z.tp1) || (z.dir == 1 && askNow >= z.tp1)))
+     {
+      z.status = "signal ignoré : prix déjà au-delà du TP1 " + DoubleToString(z.tp1, SymDigits(z.sym));
+      return;
+     }
 
    int    dg     = SymDigits(z.sym);
    double point  = SymbolInfoDouble(z.sym, SYMBOL_POINT);
@@ -1009,7 +1017,12 @@ void CheckEvents()
          msg += head + "gain de " + DoubleToString(LockTriggerMoney, 0) + " atteint, l'EA verrouille +" +
                 DoubleToString(LockKeepMoney, 0) + " : décide s'il faut laisser monter (TP plus loin) ou encaisser.\n";
 
-      // 3. Prix proche du SL (moins de 20 % de la distance de départ)
+      // 3 a. Mi-chemin vers le SL (v1.44) : réveil assez tôt pour couper ou resserrer
+      if(risk > 0 && sl > 0 && !locked && MathAbs(price - sl) < 0.5 * risk && Once(p + "halfsl"))
+         msg += head + "le prix a fait la moitié du chemin vers le stop " + DoubleToString(sl, dg) +
+                " : décide s'il faut couper, resserrer ou garder.\n";
+
+      // 3 b. Prix proche du SL (moins de 20 % de la distance de départ)
       if(risk > 0 && sl > 0 && !locked && MathAbs(price - sl) < 0.2 * risk && Once(p + "nearsl"))
          msg += head + "le prix est à moins de 20 % du stop " + DoubleToString(sl, dg) + ".\n";
 
@@ -1065,14 +1078,17 @@ string JsonEscape(string s)
 
 void SendPendingFire()
   {
-   if(pendingFire == "" || RoutineURL == "" || RoutineToken == "")
-      return;
+   // v1.44 : le compteur et l'affichage repartent à zéro chaque jour, même sans événement
    string today = TodayCayenne();
    if(fireDay != today)
      {
       fireDay    = today;
       firesToday = 0;
+      if(StringFind(routineStatus, "limite") == 0)
+         routineStatus = "compteur de réveils remis à zéro";
      }
+   if(pendingFire == "" || RoutineURL == "" || RoutineToken == "")
+      return;
    if(firesToday >= RoutineMaxPerDay)
      {
       routineStatus = "limite de " + IntegerToString(RoutineMaxPerDay) + " réveils atteinte aujourd'hui";
