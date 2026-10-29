@@ -36,3 +36,6 @@
 2026-10-29 17:11;518117780;USDJPY#;GARDER;+62% du risque;cassure M15 baissière 20h UTC, bas 157.66, SL 158.001 intact, scénario vente tient
 2026-10-29 17:11;518117779;OILCash#;GARDER;gain verrouillé;SL 102.45 au-delà de l'entrée, TP 105.90 inchangé
 2026-10-29 17:11;518117778;BRENTCash#;GARDER;+gain;SL au point d'entrée, scénario tient
+2026-10-29 17:26;518117780;USDJPY#;GARDER;+77% du risque;cassure M15 sous 157.70 à 20h UTC, SL 157.999 resserré par EA, vente tient
+2026-10-29 17:26;518117779;OILCash#;GARDER;gain verrouillé;SL 103.20 trail EA, H1 haussier, TP 105.90 inchangé
+2026-10-29 17:26;518117778;BRENTCash#;GARDER;gain latent;SL à l'entrée, H1 haussier, objectif 118.80 tient
