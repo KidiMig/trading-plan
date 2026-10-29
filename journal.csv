@@ -43,3 +43,7 @@
 2026-10-29 18:01;518117780;USDJPY#;GARDER;+gain en cours (12.93€);creux H1 20h cassé dans le sens vente, SL suivi par l'EA
 2026-10-29 18:01;518117779;OILCash#;GARDER;gain verrouillé (SL 103.20 > entrée);H1 haussier, TP1 104.20 proche, EA gère
 2026-10-29 18:01;518117778;BRENTCash#;GARDER;gain verrouillé (SL 115.69 > entrée);H1 haussier, léger repli M15 sans cassure
+2026-10-29 18:12;518129690;GBPUSD#;GARDER;-38% du risque;ouverte depuis 12 min, perte sous 60%, pas de cassure confirmée
+2026-10-29 18:12;518117780;USDJPY#;GARDER;gain en cours (12.46€);scénario vente intact, SL suivi par l'EA
+2026-10-29 18:12;518117779;OILCash#;GARDER;gain verrouillé (SL 103.20 > entrée);TP1 104.20 atteint, EA gère
+2026-10-29 18:12;518117778;BRENTCash#;GARDER;gain verrouillé (SL 115.69 > entrée);H1 haussier
