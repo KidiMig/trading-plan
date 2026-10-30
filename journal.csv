@@ -71,3 +71,6 @@
 2026-10-29 21:25;518131172;EURUSD#;GARDER;-1% du risque;range nocturne, scénario vente intact
 2026-10-29 21:25;518117779;OILCash#;GARDER;gain verrouillé (SL 103.81);range 103.9-104.1, pas d'élan, TP 105.90 inchangé
 2026-10-29 21:25;518117778;BRENTCash#;GARDER;gain verrouillé (SL 116.09);range 116.1-116.4, pas d'élan, TP 118.80 inchangé
+2026-10-29 21:50;518131172;EURUSD#;GARDER;-51% du risque;prix sous 1.11917 (double sommet M15), zone vente 1.1182-1.1205 intacte, sous 60%
+2026-10-29 21:50;518117779;OILCash#;GARDER;gain verrouillé (SL 103.81);range 103.9-104.2, pas d'élan, TP 105.90 inchangé
+2026-10-29 21:50;518117778;BRENTCash#;GARDER;gain verrouillé (SL 116.09);range 116.1-116.4, pas d'élan, TP 118.80 inchangé
