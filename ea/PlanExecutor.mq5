@@ -18,7 +18,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.45"
+#property version   "1.46"
 
 #include <Trade\Trade.mqh>
 
@@ -536,7 +536,10 @@ int CountPositions(string sym)
 
 int LossesToday()
   {
-   datetime dayStart = (datetime)(((long)TimeCurrent() / 86400) * 86400);
+   // v1.46 : la journée commence à minuit heure de Cayenne (et non à minuit heure du serveur XM)
+   long cay      = (long)TimeGMT() + CayenneUtcOffset * 3600;
+   long midGmt   = (cay / 86400) * 86400 - CayenneUtcOffset * 3600;          // minuit Cayenne en GMT
+   datetime dayStart = (datetime)(midGmt + ((long)TimeCurrent() - (long)TimeGMT())); // converti en heure serveur
    if(!HistorySelect(dayStart, TimeCurrent() + 60))
       return 0;
    int c = 0;
