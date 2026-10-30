@@ -1,2 +1,3 @@
 position;symbole;sens;volume;ouverture_utc;prix_entree;fermeture_utc;prix_sortie;sortie;profit;swap;commission;net
 95371633;ETHUSD;SELL;0.74;2026-10-19 01:32;2422.0;2026-10-19 09:36;2444.0;SL;-14.52;0.0;0.0;-14.52
+96413641;BTCUSD;SELL;0.02;2026-10-24 18:56;80400.0;2026-10-26 09:19;80400.0;BE;0.0;0.16;0.0;0.16
