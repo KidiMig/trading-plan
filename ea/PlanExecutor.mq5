@@ -8,6 +8,7 @@
 //|    #news;2026-10-14 09:30           annonce, heure de Cayenne     |
 //|    SYMBOLE;SENS;ZONE_BAS;ZONE_HAUT;SL_JOUR;TP;TP1                 |
 //|    GOLD#;SELL;4205;4219;4255;4115;4150                            |
+//|    8e colonne facultative COUP = coup du mois (v1.45)            |
 //|                                                                  |
 //|  À autoriser dans Outils > Options > Expert Advisors > WebRequest |
 //|    https://raw.githubusercontent.com                             |
@@ -17,7 +18,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.44"
+#property version   "1.45"
 
 #include <Trade\Trade.mqh>
 
@@ -52,7 +53,7 @@ input bool   Paused             = false; // Pause : aucune nouvelle entrée
 input bool   AllowRealAccount   = false; // Autoriser le trading sur un compte réel
 input int    PollMinutes        = 5;     // Relecture du plan (minutes)
 input int    EntryStartHour     = 3;     // Entrées autorisées à partir de (heure Cayenne)
-input int    EntryEndHour       = 21;    // Entrées autorisées jusqu'à (heure Cayenne)
+input int    EntryEndHour       = 16;    // Entrées autorisées jusqu'à (heure Cayenne)
 input int    FridayCloseHour    = 16;    // Vendredi : tout fermer à (heure Cayenne)
 input int    NewsMinutes        = 30;    // Pas d'entrée X min avant/après une annonce
 input int    CayenneUtcOffset   = -3;    // Décalage horaire de Cayenne par rapport à UTC
@@ -73,6 +74,13 @@ input int    RoutineMinMinutes  = 10;    // Délai minimum entre deux réveils (
 input int    RoutineMaxPerDay   = 30;    // Réveils maximum par jour
 input bool   RoutineTest        = false; // Envoyer un réveil de test au démarrage (remettre à false ensuite)
 
+input group "Coup du mois (une zone COUP par mois, en pyramide)"
+input bool   CoupEnabled        = true;  // Jouer la zone marquée COUP dans le plan (une seule fois par mois)
+input double CoupRiskPercent    = 30;    // Risque de la mise de départ (% du solde)
+input int    CoupMaxAdds        = 3;     // Nombre d'ajouts maximum (pyramide)
+input double CoupAddFactor      = 0.5;   // Taille de chaque ajout (fraction de la mise de départ)
+input double CoupAddStepR       = 1.0;   // Un ajout tous les X fois le risque de départ
+
 //--- Une zone du plan
 struct Zone
   {
@@ -88,6 +96,7 @@ struct Zone
    datetime          lastBar;      // dernière bougie M15 traitée
    bool              done;
    string            status;
+   bool              coup;         // v1.45 : zone « coup du mois » (8e colonne COUP)
   };
 
 Zone     zones[];
@@ -284,6 +293,9 @@ void ParsePlan(string text)
       z.lastBar     = iTime(z.sym, EntryTF(), 0);
       z.done        = false;
       z.status      = "en attente de la zone";
+      z.coup        = (k >= 8 && StringFind(f[7], "COUP") == 0);
+      if(z.coup)
+         z.status = "COUP DU MOIS : en attente de la zone";
       int m = ArraySize(newZones);
       ArrayResize(newZones, m + 1);
       newZones[m] = z;
@@ -547,8 +559,19 @@ int LossesToday()
 //+------------------------------------------------------------------+
 string lotNote = "";   // explique une réduction du volume (marge insuffisante)
 
-double LotsForRisk(string sym, double slDistance, int dir)
+// Coup du mois : clé du mois en cours (heure de Cayenne), ex. 202611
+string CoupMonth()
   {
+   MqlDateTime t;
+   TimeToStruct(CayenneNow(), t);
+   return StringFormat("%04d%02d", t.year, t.mon);
+  }
+bool CoupUsedThisMonth() { return GlobalVariableCheck("PE_COUP_" + CoupMonth()); }
+
+double LotsForRisk(string sym, double slDistance, int dir, double riskPct = -1, bool allMargin = false)
+  {
+   if(riskPct <= 0)
+      riskPct = RiskPercent;
    double tickSize  = SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_SIZE);
    double tickValue = SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_VALUE);
    double vMin      = SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN);
@@ -556,7 +579,7 @@ double LotsForRisk(string sym, double slDistance, int dir)
    double vStep     = SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP);
    if(tickSize <= 0 || tickValue <= 0 || vStep <= 0 || slDistance <= 0)
       return 0;
-   double riskMoney   = AccountInfoDouble(ACCOUNT_BALANCE) * RiskPercent / 100.0;
+   double riskMoney   = AccountInfoDouble(ACCOUNT_BALANCE) * riskPct / 100.0;
    double lossPerLot  = slDistance / tickSize * tickValue;
    double lots        = MathFloor(riskMoney / lossPerLot / vStep) * vStep;
    if(lots < vMin)
@@ -575,7 +598,7 @@ double LotsForRisk(string sym, double slDistance, int dir)
    double marginPerLot = 0;
    if(OrderCalcMargin(dir == 1 ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, sym, 1.0, price, marginPerLot) && marginPerLot > 0)
      {
-      int    slots  = MathMax(1, MaxPositions - CountPositions(""));
+      int    slots  = allMargin ? 1 : MathMax(1, MaxPositions - CountPositions(""));
       double budget = AccountInfoDouble(ACCOUNT_MARGIN_FREE) * 0.9 / slots;
       double maxLots = MathFloor(budget / marginPerLot / vStep) * vStep;
       if(lots > maxLots)
@@ -671,7 +694,10 @@ void TryEnter(Zone &z, const MqlRates &r[])
       return;
      }
 
-   double lots = LotsForRisk(z.sym, risk, z.dir);
+   // v1.45 : coup du mois = risque CoupRiskPercent, toute la marge libre, une seule fois par mois
+   bool isCoup = z.coup && CoupEnabled && !CoupUsedThisMonth();
+   double lots = isCoup ? LotsForRisk(z.sym, risk, z.dir, CoupRiskPercent, true)
+                        : LotsForRisk(z.sym, risk, z.dir);
    if(lots <= 0)
      {
       if(lotNote != "")
@@ -697,7 +723,7 @@ void TryEnter(Zone &z, const MqlRates &r[])
 
    sl = NormalizeDouble(sl, dg);
    tp = NormalizeDouble(tp, dg);
-   string comment = "AI:" + DoubleToString(z.tp1, dg);
+   string comment = isCoup ? "COUP:" + CoupMonth() : "AI:" + DoubleToString(z.tp1, dg);
 
    trade.SetTypeFillingBySymbol(z.sym);
    bool ok = (z.dir == -1) ? trade.Sell(lots, z.sym, 0, sl, tp, comment)
@@ -713,6 +739,21 @@ void TryEnter(Zone &z, const MqlRates &r[])
                               DoubleToString(sl, dg), DoubleToString(tp, dg), rr);
       if(lotNote != "")
          z.status += " — " + lotNote;
+      if(isCoup)
+        {
+         string g = "PE_CG_" + CoupMonth() + "_";
+         GlobalVariableSet("PE_COUP_" + CoupMonth(), (double)TimeCurrent());
+         GlobalVariableSet(g + "D", MathAbs(trade.ResultPrice() - sl));
+         GlobalVariableSet(g + "E1", trade.ResultPrice());
+         GlobalVariableSet(g + "L1", lots);
+         GlobalVariableSet(g + "N", 0);
+         GlobalVariableSet(g + "DIR", z.dir);
+         z.status = "COUP DU MOIS : " + z.status;
+         QueueFire(StringFormat("COUP DU MOIS lancé sur %s : %s %.2f lot à %s, SL %s, TP %s, risque %.0f %% du solde. "
+                                "L'EA ajoutera jusqu'à %d positions (pyramide) tous les %.1f R en sens favorable.\n",
+                                z.sym, z.dir == -1 ? "vente" : "achat", lots, DoubleToString(trade.ResultPrice(), dg),
+                                DoubleToString(sl, dg), DoubleToString(tp, dg), CoupRiskPercent, CoupMaxAdds, CoupAddStepR));
+        }
       Print(z.sym, " : ", z.status);
      }
    else
@@ -1166,6 +1207,10 @@ void ManagePositions()
          continue;
         }
 
+      // Coup du mois : géré à part (pyramide), pas de verrouillage ni de suivi classique
+      if(StringFind(PositionGetString(POSITION_COMMENT), "COUP:") == 0)
+         continue;
+
       // Gain verrouillé : dès +LockTriggerMoney, le SL garantit au moins +LockKeepMoney
       LockProfit(tk);
       // Sortie quand l'élan s'essouffle : SL derrière les dernières bougies H1
@@ -1199,6 +1244,137 @@ void ManagePositions()
                Print(sym, " : objectif 1 atteint, stop remonté au prix d'entrée");
         }
      }
+   if(!fridayClose)
+      ManageCoup(CoupMonth());
+  }
+
+//+------------------------------------------------------------------+
+//| Coup du mois (v1.45) : pyramide                                   |
+//| Tous les CoupAddStepR × risque de départ en sens favorable, l'EA  |
+//| ajoute une position (CoupAddFactor × la mise de départ) et place  |
+//| le SL de toutes les positions sur le prix d'entrée moyen : la     |
+//| pyramide ne peut plus perdre (hors écart de cotation). Après le   |
+//| dernier ajout, le SL commun suit les bougies H1.                  |
+//+------------------------------------------------------------------+
+void ManageCoup(const string month)
+  {
+   string g = "PE_CG_" + month + "_";
+   if(!GlobalVariableCheck(g + "D"))
+      return;
+   double D    = GlobalVariableGet(g + "D");
+   double e1   = GlobalVariableGet(g + "E1");
+   double l1   = GlobalVariableGet(g + "L1");
+   int    nAdd = (int)GlobalVariableGet(g + "N");
+   int    dir  = (int)GlobalVariableGet(g + "DIR");
+   if(D <= 0 || l1 <= 0 || dir == 0)
+      return;
+
+   // Positions du coup en cours
+   ulong  legs[];
+   string sym = "";
+   double sumVol = 0, sumPx = 0, curSl = 0, tp = 0;
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+     {
+      ulong tk = PositionGetTicket(i);
+      if(tk == 0 || PositionGetInteger(POSITION_MAGIC) != Magic)
+         continue;
+      if(PositionGetString(POSITION_COMMENT) != "COUP:" + month)
+         continue;
+      int m = ArraySize(legs);
+      ArrayResize(legs, m + 1);
+      legs[m] = tk;
+      sym     = PositionGetString(POSITION_SYMBOL);
+      double v = PositionGetDouble(POSITION_VOLUME);
+      sumVol += v;
+      sumPx  += v * PositionGetDouble(POSITION_PRICE_OPEN);
+      double s = PositionGetDouble(POSITION_SL);
+      if(s > 0)
+         curSl = (curSl == 0) ? s : (dir == 1 ? MathMax(curSl, s) : MathMin(curSl, s));
+      tp = PositionGetDouble(POSITION_TP);
+     }
+   if(ArraySize(legs) == 0 || sym == "")
+      return;
+
+   int    dg      = SymDigits(sym);
+   double point   = SymbolInfoDouble(sym, SYMBOL_POINT);
+   double bid     = SymbolInfoDouble(sym, SYMBOL_BID);
+   double ask     = SymbolInfoDouble(sym, SYMBOL_ASK);
+   double spread  = ask - bid;
+   double minStop = (double)SymbolInfoInteger(sym, SYMBOL_TRADE_STOPS_LEVEL) * point;
+   if(bid <= 0 || ask <= 0)
+      return;
+   double gainR = (dir == 1) ? (bid - e1) / D : (e1 - ask) / D;
+   double newSl = 0;
+
+   // 1. Ajout d'une position au palier suivant
+   if(nAdd < CoupMaxAdds && gainR >= (nAdd + 1) * CoupAddStepR)
+     {
+      double vStep = SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP);
+      double vMin  = SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN);
+      double add   = MathFloor(l1 * CoupAddFactor / vStep) * vStep;
+      double mpl   = 0;
+      if(OrderCalcMargin(dir == 1 ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, sym, 1.0, dir == 1 ? ask : bid, mpl) && mpl > 0)
+         add = MathMin(add, MathFloor(AccountInfoDouble(ACCOUNT_MARGIN_FREE) * 0.9 / mpl / vStep) * vStep);
+      nAdd++;
+      GlobalVariableSet(g + "N", nAdd);          // palier consommé, même si l'ajout est impossible
+      if(add >= vMin)
+        {
+         trade.SetTypeFillingBySymbol(sym);
+         bool ok = (dir == 1) ? trade.Buy(add, sym, 0, curSl, tp, "COUP:" + month)
+                              : trade.Sell(add, sym, 0, curSl, tp, "COUP:" + month);
+         if(ok && (trade.ResultRetcode() == TRADE_RETCODE_DONE || trade.ResultRetcode() == TRADE_RETCODE_PLACED))
+           {
+            sumVol += add;
+            sumPx  += add * trade.ResultPrice();
+            int m = ArraySize(legs);
+            ArrayResize(legs, m + 1);
+            legs[m] = trade.ResultOrder();
+            QueueFire(StringFormat("COUP DU MOIS %s : ajout n°%d de %.2f lot à %s (gain %.1f R), SL commun placé sur le prix moyen.\n",
+                                   sym, nAdd, add, DoubleToString(trade.ResultPrice(), dg), gainR));
+           }
+         else
+            Print(sym, " : ajout du coup refusé : ", trade.ResultRetcodeDescription());
+        }
+      // SL commun sur le prix d'entrée moyen (+ un peu de marge pour l'écart de cotation)
+      double avg = sumPx / sumVol;
+      newSl = (dir == 1) ? avg + 2 * spread : avg - 2 * spread;
+     }
+   // 2. Après le dernier ajout : le SL commun suit les 2 dernières bougies H1
+   else
+      if(nAdd >= CoupMaxAdds)
+        {
+         int n = MathMax(1, TrailBarsH1);
+         if(dir == 1)
+           {
+            double lo = iLow(sym, PERIOD_H1, 1);
+            for(int k = 2; k <= n; k++)
+               lo = MathMin(lo, iLow(sym, PERIOD_H1, k));
+            if(lo > 0)
+               newSl = lo - spread;
+           }
+         else
+           {
+            double hi = iHigh(sym, PERIOD_H1, 1);
+            for(int k = 2; k <= n; k++)
+               hi = MathMax(hi, iHigh(sym, PERIOD_H1, k));
+            if(hi > 0)
+               newSl = hi + 2 * spread;
+           }
+        }
+   if(newSl <= 0)
+      return;
+   newSl = NormalizeDouble(newSl, dg);
+
+   // Le SL ne fait que se resserrer et doit rester à distance du prix
+   if(dir == 1 && (newSl <= curSl + point || newSl >= bid - minStop))
+      return;
+   if(dir == -1 && ((curSl > 0 && newSl >= curSl - point) || newSl <= ask + minStop))
+      return;
+   for(int j = 0; j < ArraySize(legs); j++)
+      if(PositionSelectByTicket(legs[j]))
+         trade.PositionModify(legs[j], newSl, PositionGetDouble(POSITION_TP));
+   Print(sym, " : coup du mois, SL commun à ", DoubleToString(newSl, dg));
+   pushNeeded = true;
   }
 
 //+------------------------------------------------------------------+
@@ -1259,7 +1435,8 @@ string BuildDataCsv()
    s += "EA;plan=" + planDate + ";entrees=" + (why == "" ? "autorisees" : Clean(why)) + ";erreur=" + Clean(lastError) +
         ";risque=" + D(RiskPercent, 2) + ";maxpos=" + IntegerToString(MaxPositions) + ";mode=" + EntryModeName() +
         ";suivi=" + (TrailEnabled ? "H1" : "non") + ";ordres_claude=" + (ActionsEnabled ? "oui" : "non") +
-        ";dernier_ordre=" + Clean(actionStatus) + ";reveil=" + Clean(routineStatus) + "\n";
+        ";dernier_ordre=" + Clean(actionStatus) + ";reveil=" + Clean(routineStatus) +
+        ";coup=" + (!CoupEnabled ? "désactivé" : (CoupUsedThisMonth() ? "déjà joué ce mois" : "disponible ce mois")) + "\n";
 
    s += "#ZONE;symbole;sens;zone_bas;zone_haut;sl_jour;tp;tp1;touchee;etat\n";
    for(int i = 0; i < ArraySize(zones); i++)
@@ -1499,6 +1676,8 @@ void UpdateComment()
       s += "Aucun plan chargé\n";
    else
       s += "Plan du " + planDate + (PlanIsToday() ? "" : "  (PÉRIMÉ : aucune entrée)") + "\n";
+   s += "Coup du mois : " + (!CoupEnabled ? "désactivé" : (CoupUsedThisMonth() ? "déjà joué ce mois" :
+        StringFormat("disponible (risque %.0f %%, %d ajouts)", CoupRiskPercent, CoupMaxAdds))) + "\n";
    string why = BlockReason();
    s += "Entrées : " + (why == "" ? "autorisées" : "bloquées (" + why + ")") + "\n";
    s += StringFormat("Mode : %s · risque %.1f %% · positions %d/%d · pertes du jour %d/%d\n",
