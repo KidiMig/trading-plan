@@ -1,5 +1,5 @@
-#date;2026-10-30
-#valid_until_utc;2026-10-31 14:00
-#generated_utc;2026-10-30 23:45
+#date;2026-10-31
+#valid_until_utc;2026-11-01 14:00
+#generated_utc;2026-10-31 11:00
 ID;SYMBOL;ORDER;ENTRY;SL;TP;RISK_PCT;NOTE
 20261030-BTC-1;BTCUSD;SELL_LIMIT;78200;79800;75200;;retest zone cassée 78-78.7k sous MM20-50 D1 cible creux septembre 75k
