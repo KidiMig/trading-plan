@@ -1,4 +1,4 @@
-#generated_utc;2026-11-01 08:52
+#generated_utc;2026-11-01 09:07
 #format;ACCOUNT EA SPEC ZONE POS ORDER DEAL QUOTE BAR (heures en UTC)
 ACCOUNT;62151038;PepperstoneUK-Demo;EUR;985.64;985.64;985.64;DEMO
 EA;version=1.12;magic=20261016;plan=plan du 2026-10-31 : 1 ligne(s), valable jusqu'au 2026-11-01 14:00 UTC;risque=2.00;maxpos=2;perte_max_jour=6.00;rr_min=1.50;solde_debut_jour=985.64;stop_jour=0;trading_algo=1;reveil=prêt;erreur=;dernier_evenement=2026-10-30 23:37 démarré sur le compte 62151038 (PepperstoneUK-Demo)
