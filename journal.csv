@@ -110,3 +110,5 @@
 2026-11-04 14:11;518283701;GBPUSD#;GARDER;+5% du risque;ouverte il y a 1 min, scénario intact
 2026-11-04 14:46;518283702;EURUSD#;GARDER;+23% du risque;ouverte depuis 35 min, prix 1.1236 au-dessus de l entree, aucune annonce proche
 2026-11-04 14:46;518283701;GBPUSD#;GARDER;+28% du risque;ouverte depuis 35 min, prix 1.3475 au-dessus de l entree, zone 1.343-1.346 tenue
+2026-11-04 15:38;518283702;EURUSD#;GARDER;-46% du risque;mi-chemin du stop mais aucune clôture H1 sous 1.1205 (bas de zone), pas d'actu ; sortie si clôture H1 < 1.1205
+2026-11-04 15:38;518283701;GBPUSD#;GARDER;-39% du risque;zone 1.343-1.346 tenue, sortie si clôture H1 < 1.3430
