@@ -123,3 +123,7 @@
 2026-11-04 16:46;518283702;EURUSD#;GARDER;-57% du risque;prix 1.12192, clôture H1 1.12181 au-dessus du bas de zone 1.1205 ; sortie si clôture H1 < 1.1205
 2026-11-04 16:46;518283701;GBPUSD#;GARDER;-28% du risque;prix 1.34634, zone tenue ; sortie si clôture H1 < 1.3430
 2026-11-04 16:46;518287014;NGASCash#;GARDER;-5% du risque;prix 2.721, clôture H1 2.720 sous le haut de zone ; sortie si clôture H1 > 2.735
+2026-11-04 16:51;518289311;USDJPY#;GARDER;-1% du risque;position ouverte il y a 1 min, pas touchée ; sortie si clôture H1 > 158.950
+2026-11-04 16:51;518283702;EURUSD#;GARDER;-54% du risque;prix 1.12205 au-dessus du bas de zone ; sortie si clôture H1 < 1.1205
+2026-11-04 16:51;518283701;GBPUSD#;GARDER;-24% du risque;zone tenue ; sortie si clôture H1 < 1.3430
+2026-11-04 16:51;518287014;NGASCash#;GARDER;-14% du risque;prix 2.725 sous le haut de zone ; sortie si clôture H1 > 2.735
