@@ -1,0 +1,28 @@
+#maj;2026-11-04
+#format;date;heure_cayenne;heure_utc;pays;evenement;impact(3=fort,2=moyen,1=faible,0=repere);marches;prevu;precedent;note
+2026-11-04;10:15;2026-11-04T13:15Z;US;ADP emploi privé (oct.);2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;Avant-goût du rapport sur l'emploi de vendredi
+2026-11-04;10:30;2026-11-04T13:30Z;US;Trésor : annonce du refinancement trimestriel;2;GOLD#,USDJPY#,US500Cash#,US100Cash#;;;Taille des émissions de dette : bouge les taux, donc l'or et le yen
+2026-11-04;10:30;2026-11-04T13:30Z;US;Balance commerciale (sept.);1;EURUSD#,USDJPY#;;;
+2026-11-04;12:00;2026-11-04T15:00Z;US;ISM services (oct.);3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;54,7;54,9;Sous 50 = contraction ; un chiffre faible affaiblit le dollar
+2026-11-04;12:30;2026-11-04T15:30Z;US;Stocks de pétrole EIA;2;OILCash#,BRENTCash#;;;Baisse des stocks = soutien du brut
+2026-11-05;09:00;2026-11-05T12:00Z;UK;Banque d'Angleterre : décision et rapport;3;GBPUSD#,EURUSD#;hausse 0,25 pt;;Première hausse depuis 2023 attendue ; le vote et le discours comptent autant que la décision
+2026-11-05;09:30;2026-11-05T12:30Z;US;Challenger : licenciements (oct.);1;US500Cash#,US100Cash#;;;
+2026-11-05;10:30;2026-11-05T13:30Z;US;Inscriptions au chômage;2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;
+2026-11-05;12:30;2026-11-05T15:30Z;US;Stocks de gaz EIA;2;NGASCash#;;;Le seul chiffre qui fait vraiment bouger le gaz dans la semaine
+2026-11-06;10:30;2026-11-06T13:30Z;US;Rapport sur l'emploi (oct.) : NFP, chômage, salaires;3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;+55 k · 4,2 % · +0,3 %;+29 k · 4,2 % · +0,1 %;L'annonce la plus forte du mois : mouvements de 1 à 2 ATR possibles en quelques minutes
+2026-11-06;12:00;2026-11-06T15:00Z;US;Confiance des consommateurs Michigan (prélim. nov.);2;US500Cash#,US100Cash#,EURUSD#;;;Regarde aussi les anticipations d'inflation
+2026-11-06;16:00;2026-11-06T19:00Z;EA;Fermeture du vendredi : l'EA ferme tout;0;;;;
+2026-11-10;00:00;2026-11-10T03:00Z;EA;Passage en réel (dépôt de 200 €);0;;;;Même jour que l'inflation américaine : pas de première entrée avant 11h
+2026-11-10;10:30;2026-11-10T13:30Z;US;Inflation CPI (oct.);3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;;3,7 %;Décisif pour la hausse de la Fed du 9 décembre (évaluée à ~79 %)
+2026-11-10;18:30;2026-11-10T21:30Z;US;Stocks de pétrole API;1;OILCash#,BRENTCash#;;;
+2026-11-11;00:00;2026-11-11T03:00Z;US;Veterans Day : marché obligataire fermé, actions ouvertes;1;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;Liquidité plus faible ; le chiffre EIA du pétrole est souvent décalé au jeudi
+2026-11-12;04:00;2026-11-12T07:00Z;UK;PIB du 3e trimestre (1re estimation);2;GBPUSD#;;;Date à confirmer
+2026-11-12;10:30;2026-11-12T13:30Z;US;Inscriptions au chômage;2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;
+2026-11-12;12:30;2026-11-12T15:30Z;US;Stocks de gaz EIA;2;NGASCash#;;;
+2026-11-12;13:00;2026-11-12T16:00Z;US;Stocks de pétrole EIA (décalé);2;OILCash#,BRENTCash#;;;Heure à confirmer
+2026-11-13;10:30;2026-11-13T13:30Z;US;Prix à la production PPI (oct.);2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;
+2026-11-13;16:00;2026-11-13T19:00Z;EA;Fermeture du vendredi : l'EA ferme tout;0;;;;
+2026-11-17;10:30;2026-11-17T13:30Z;US;Ventes au détail (oct.);2;;;;plus tard
+2026-11-18;16:00;2026-11-18T19:00Z;US;Compte rendu de la Fed (réunion des 27–28 oct.);3;;;;plus tard
+2026-11-25;10:30;2026-11-25T13:30Z;US;PIB du 3e trimestre (2e estimation) et inflation PCE (oct.);3;;;;plus tard
+2026-12-09;16:00;2026-12-09T19:00Z;US;Fed : décision sur les taux;3;;;;plus tard
