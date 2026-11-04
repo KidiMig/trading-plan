@@ -114,3 +114,6 @@
 2026-11-04 15:38;518283701;GBPUSD#;GARDER;-39% du risque;zone 1.343-1.346 tenue, sortie si clôture H1 < 1.3430
 2026-11-04 15:46;518283702;EURUSD#;GARDER;-51% du risque;prix 1.12204 au-dessus du bas de zone 1.1205, pas d actu ; sortie si cloture H1 < 1.1205
 2026-11-04 15:46;518283701;GBPUSD#;GARDER;-43% du risque;prix 1.34606 au-dessus du bas de zone 1.3430, BoE demain 09h ; sortie si cloture H1 < 1.3430
+2026-11-04 15:50;518283701;GBPUSD#;GARDER;-45% du risque;H1 clôturées au-dessus de 1.3430 (dernière 1.34603), sortie si clôture H1 < 1.3430
+2026-11-04 15:50;518287014;NGASCash#;GARDER;-26% du risque;position ouverte il y a 5 min, zone 2.695-2.735 tenue, sortie si clôture H1 > 2.735
+2026-11-04 15:50;518283702;EURUSD#;GARDER;-66% du risque;prix 1.12161 au-dessus du bas de zone 1.1205, sortie si clôture H1 < 1.1205
