@@ -178,3 +178,7 @@
 2026-11-05 01:50;518287014;NGASCash#;GARDER;-2% du risque;clôture H1 au-dessus de 2.735 ferait sortir, rien avant stocks gaz 15h30 UTC
 2026-11-05 01:50;518283702;EURUSD#;GARDER;+101% du risque;SL au-dessus de l'entrée géré par l'EA, pas d'annonce avant 12h UTC
 2026-11-05 01:50;518283701;GBPUSD#;GARDER;+80% du risque;clôture H1 sous 1.3430 ferait sortir, BoE à 12h UTC
+2026-11-05 02:45;518289311;USDJPY#;GARDER;+gain verrouillé SL 158.44 en profit;TP 157.40 en place, H1 baissier, rien à ajouter
+2026-11-05 02:45;518287014;NGASCash#;GARDER;-26% du risque;clôture H1 au-dessus de 2.735 ferait sortir, stocks gaz 15h30 UTC
+2026-11-05 02:45;518283702;EURUSD#;GARDER;+gain verrouillé;SL géré par l'EA, BoE 12h UTC
+2026-11-05 02:45;518283701;GBPUSD#;GARDER;+gain verrouillé;clôture H1 sous 1.3430 ferait sortir, BoE 12h UTC
