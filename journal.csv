@@ -182,3 +182,7 @@
 2026-11-05 02:45;518287014;NGASCash#;GARDER;-26% du risque;clôture H1 au-dessus de 2.735 ferait sortir, stocks gaz 15h30 UTC
 2026-11-05 02:45;518283702;EURUSD#;GARDER;+gain verrouillé;SL géré par l'EA, BoE 12h UTC
 2026-11-05 02:45;518283701;GBPUSD#;GARDER;+gain verrouillé;clôture H1 sous 1.3430 ferait sortir, BoE 12h UTC
+2026-11-05 00:46;518289311;USDJPY#;GARDER;+232% (SL verrouillé);H1 baissier intact, TP 157.400 posé par l'EA, rien à changer
+2026-11-05 00:46;518287014;NGASCash#;GARDER;-9%;sous la zone, clôture H1 sup. à 2.735 ferait sortir, EIA gaz 12h30Z
+2026-11-05 00:46;518283702;EURUSD#;GARDER;+138% (SL verrouillé);H1 haussier, BoE 12h00Z dans 8h, pas de TP à bouger
+2026-11-05 00:46;518283701;GBPUSD#;GARDER;+115% (SL verrouillé);H1 haussier, BoE 12h00Z, on laisse courir
