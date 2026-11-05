@@ -170,3 +170,7 @@
 2026-11-05 01:15;518287014;NGASCash#;GARDER;-5% du risque;scénario intact, clôture H1 au-dessus de 2.735 ferait sortir
 2026-11-05 01:15;518283702;EURUSD#;GARDER;+85% du risque;H1 haussier, clôture H1 sous 1.1205 ferait sortir
 2026-11-05 01:15;518283701;GBPUSD#;GARDER;+80% du risque;H1 haussier, clôture H1 sous 1.3430 ferait sortir
+2026-11-04 22:30;518289311;USDJPY#;GARDER;+219% du risque;SL verrouillé, TP 157.400 déjà rapproché, tendance baissière intacte
+2026-11-04 22:30;518287014;NGASCash#;GARDER;+4% du risque;scénario vendeur intact, zone 2.735 non dépassée en clôture H1
+2026-11-04 22:30;518283702;EURUSD#;GARDER;+101% du risque;1R atteint, SL EA sous entrée, EA gère le suivi, pas d'annonce proche
+2026-11-04 22:30;518283701;GBPUSD#;GARDER;+91% du risque;scénario acheteur tient, EA gère le suivi, pas d'annonce proche
