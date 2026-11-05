@@ -155,3 +155,7 @@
 2026-11-04 21:03;518289311;USDJPY#;GARDER;+;SL en gain, scénario tient
 2026-11-04 21:03;518283702;EURUSD#;GARDER;+10% du risque;dans la zone ; clôture H1 sous 1.1205 ferait sortir
 2026-11-04 21:03;518283701;GBPUSD#;GARDER;+35% du risque;dans la zone ; clôture H1 sous 1.3430 ferait sortir
+2026-11-05 00:16;518283701;GBPUSD#;GARDER;+50% du risque;SL EA suit; clôture H1 sous 1.3430 ferait sortir
+2026-11-05 00:16;518289311;USDJPY#;GARDER;+;scénario tient
+2026-11-05 00:16;518283702;EURUSD#;GARDER;+10% du risque;clôture H1 sous 1.1205 ferait sortir
+2026-11-05 00:16;518287014;NGASCash#;GARDER;-21% du risque;clôture H1 au-dessus de 2.735 ferait sortir
