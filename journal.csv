@@ -195,3 +195,7 @@
 2026-11-05 02:46;518283702;EURUSD#;GARDER;+gain verrouillé (SL 1.12521);BoE 12h00Z
 2026-11-05 02:46;518283701;GBPUSD#;GARDER;+gain verrouillé (SL 1.34841);BoE 12h00Z
 2026-11-05 03:00;518287014;NGASCash#;GARDER;-12%;clôture H1 2.710 sous zone 2.735 (sortie si clôture H1 >2.735), élan H1 mineur
+2026-11-05 03:46;518289311;USDJPY#;GARDER;+gain verrouillé (SL 158.016);H1 baissier, TP 157.400 déjà placé
+2026-11-05 03:46;518283702;EURUSD#;GARDER;+gain verrouillé (SL 1.12562);BoE 12h00Z, structure H1 intacte
+2026-11-05 03:46;518283701;GBPUSD#;GARDER;+gain verrouillé (SL 1.34868);BoE 12h00Z, structure H1 intacte
+2026-11-05 03:46;518287014;NGASCash#;GARDER;-14%;clôture H1 2.710 sous zone 2.735 (sortie si clôture H1 >2.735)
