@@ -211,3 +211,6 @@
 2026-11-05 10:57;518308377;GOLD#;GARDER;+0%;position ouverte il y a 7 min, scénario tient, sortie si clôture H1 sous le bas de la zone du plan
 2026-11-05 10:57;518308242;SILVER#;GARDER;+19%;ouverte il y a 12 min, scénario tient, sortie si clôture H1 sous 52.100
 2026-11-05 10:57;518287014;NGASCash#;GARDER;-4%;dernière clôture H1 2.709 sous zone, sortie si clôture H1 >2.735, EIA 11h30
+2026-11-05 11:35;518287014;NGASCash#;GARDER;-50% du risque;mi-chemin du stop, dernière clôture H1 2.709 dans la zone, sortie si clôture H1 >2.735 (bougie 14h UTC en cours à 2.747)
+2026-11-05 11:35;518308377;GOLD#;GARDER;+0%;scénario tient, sortie si clôture H1 sous 4085
+2026-11-05 11:35;518308242;SILVER#;GARDER;+18%;scénario tient, sortie si clôture H1 sous 52.100
