@@ -208,3 +208,6 @@
 2026-11-05 10:46;518287014;NGASCash#;GARDER;-26%;clôture H1 12h 2.693 sous zone 2.735 (sortie si clôture H1 >2.735), prix 2.733 mèche 13h, EIA 15h30Z
 2026-11-05 10:46;518308242;SILVER#;GARDER;-3%;position ouverte il y a 1 min, scénario tient, sortie si clôture H1 sous 52.100
 2026-11-05 10:46;518287014;NGASCash#;GARDER;+5%;scénario vente tient, sortie si clôture H1 au-dessus de la zone du plan
+2026-11-05 10:57;518308377;GOLD#;GARDER;+0%;position ouverte il y a 7 min, scénario tient, sortie si clôture H1 sous le bas de la zone du plan
+2026-11-05 10:57;518308242;SILVER#;GARDER;+19%;ouverte il y a 12 min, scénario tient, sortie si clôture H1 sous 52.100
+2026-11-05 10:57;518287014;NGASCash#;GARDER;-4%;dernière clôture H1 2.709 sous zone, sortie si clôture H1 >2.735, EIA 11h30
