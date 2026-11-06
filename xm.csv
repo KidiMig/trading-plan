@@ -1,5 +1,5 @@
 #ver;1
-#generated_utc;2026-11-06 22:02
+#generated_utc;2026-11-06 22:11
 #server_utc_offset_h;2
 #times;BAR D1 = date serveur XM, BAR H1/M15/M5, POS et DEAL = heure UTC
 ACCOUNT;27743317;XM.COM-MT5;EUR;1388.88;1388.88;1388.88;DEMO
@@ -10,7 +10,7 @@ ZONE;US500Cash#;SELL;7395.00;7430.00;7470.00;7265.00;7320.00;0;en attente de la 
 ZONE;BRENTCash#;SELL;103.20;104.40;106.00;98.00;99.90;0;en attente de la zone
 ZONE;OILCash#;SELL;93.20;94.50;95.70;88.80;89.90;0;en attente de la zone
 ZONE;GOLD#;BUY;4036.00;4060.00;4015.00;4145.00;4107.00;0;en attente de la zone
-ZONE;NGASCash#;BUY;2.735;2.768;2.690;2.960;2.870;1;dans la zone, attente de cassure M5 au-dessus de 2.750
+ZONE;NGASCash#;BUY;2.735;2.768;2.690;2.960;2.870;0;en attente de la zone
 #POS;ticket;symbole;type;volume;ouverture_utc;prix_ouverture;sl;tp;prix_actuel;profit;swap;magic;commentaire
 #DEAL;ticket;heure_utc;symbole;type;entree;volume;prix;profit;swap;commission;magic;position;commentaire
 DEAL;510936381;2026-11-02 12:25;GBPUSD#;BUY;IN;0.08;1.34212;0.00;0.00;0.00;20261012;518186527;AI:1.34600
