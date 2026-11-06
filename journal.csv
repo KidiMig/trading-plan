@@ -218,3 +218,4 @@
 2026-11-05 11:46;518287014;NGASCash#;GARDER;-39% du risque;dernière clôture H1 2.709 dans la zone, sortie si clôture H1 >2.735 (bougie 14h UTC en cours à 2.729-2.740); SILVER et GOLD déjà sortis au SL
 2026-11-05 15:46;518287014;NGASCash#;GARDER;-40% du risque;dernière clôture H1 2.730 sous le haut de zone, sortie si clôture H1 >2.735; EIA 15h30 UTC
 2026-11-05 12:58;518287014;NGASCash#;GARDER;-84% du risque;dernière clôture H1 (14h UTC) 2.722 sous le haut de zone, bougie 15h en cours à 2.755; sortie si clôture H1 >2.735 (SL 2.775)
+2026-11-06 11:34;518347015;NGASCash#;GARDER;-16% du risque;position ouverte il y a 4 min, sortie si clôture H1 <2.717 (mi-chemin bas de zone 2.735 / SL 2.698)
