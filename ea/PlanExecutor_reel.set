@@ -1,4 +1,4 @@
-; Réglages du compte réel (200 €) - PlanExecutor v1.48
+; Réglages du compte réel (200 €) - PlanExecutor v1.49
 DataBranch=reel
 RiskPercent=5
 MaxPositions=2

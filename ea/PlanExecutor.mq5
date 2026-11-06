@@ -9,6 +9,8 @@
 //|    SYMBOLE;SENS;ZONE_BAS;ZONE_HAUT;SL_JOUR;TP;TP1                 |
 //|    GOLD#;SELL;4205;4219;4255;4115;4150                            |
 //|    8e colonne facultative COUP = coup du mois (v1.45)            |
+//|  v1.49 : ConfirmEntries -> avant chaque entrée, l'EA réveille   |
+//|    Claude et attend GO ou NON dans actions.csv                   |
 //|  v1.48 : DayFilter -> pas de vente si le marché est au-dessus   |
 //|    de son ouverture du jour, pas d'achat s'il est en dessous      |
 //|  v1.47 : PriorityZones = N -> seules les N premières zones du   |
@@ -22,7 +24,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.48"
+#property version   "1.49"
 
 #include <Trade\Trade.mqh>
 
@@ -80,6 +82,11 @@ input int    RoutineMinMinutes  = 10;    // Délai minimum entre deux réveils (
 input int    RoutineMaxPerDay   = 30;    // Réveils maximum par jour
 input bool   RoutineTest        = false; // Envoyer un réveil de test au démarrage (remettre à false ensuite)
 
+input group "Feu vert de Claude avant chaque entrée (v1.49)"
+input bool   ConfirmEntries     = true;  // Avant d'entrer, demander GO ou NON à Claude (réveil de la routine)
+input int    ConfirmTimeoutMin  = 30;    // Sans réponse après X minutes : demande abandonnée, pas d'entrée
+input int    ConfirmMaxAsk      = 2;     // Demandes maximum par zone et par jour
+
 input group "Coup du mois (une zone COUP par mois, en pyramide)"
 input bool   CoupEnabled        = true;  // Jouer la zone marquée COUP dans le plan (une seule fois par mois)
 input double CoupRiskPercent    = 30;    // Risque de la mise de départ (% du solde)
@@ -104,6 +111,10 @@ struct Zone
    string            status;
    bool              coup;         // v1.45 : zone « coup du mois » (8e colonne COUP)
    bool              reserve;      // v1.47 : zone en réserve (hors des PriorityZones premières)
+   long              reqId;        // v1.49 : numéro de la demande de feu vert
+   datetime          reqTime;      // v1.49 : heure de la demande
+   int               reqState;     // v1.49 : 0 aucune, 1 en attente, 2 GO reçu, 3 NON reçu
+   int               reqCount;     // v1.49 : demandes faites aujourd'hui pour cette zone
   };
 
 Zone     zones[];
@@ -121,6 +132,9 @@ string   pendingFire   = "";
 datetime lastFire      = 0;
 int      firesToday    = 0;
 string   fireDay       = "";
+bool     urgentFire    = false;   // v1.49 : une demande de feu vert part sans attendre le délai minimum
+datetime lastActPoll   = 0;
+long     reqSeq        = 0;
 
 //+------------------------------------------------------------------+
 datetime CayenneNow() { return TimeGMT() + CayenneUtcOffset * 3600; }
@@ -172,7 +186,14 @@ void OnTimer()
      {
       PollPlan();
       PollActions();
+      lastActPoll = TimeLocal();
      }
+   else
+      if(WaitingConfirm() && TimeLocal() - lastActPoll >= 60)
+        {
+         PollActions();                 // v1.49 : réponse de Claude attendue : on relit actions.csv chaque minute
+         lastActPoll = TimeLocal();
+        }
 
    ManagePositions();
    CheckEvents();
@@ -183,6 +204,7 @@ void OnTimer()
       MarkReserve();
       for(int i = 0; i < ArraySize(zones); i++)
          ProcessZone(zones[i]);
+      ProcessConfirm();
      }
 
    if(GitHubToken != "")
@@ -303,6 +325,10 @@ void ParsePlan(string text)
       z.status      = "en attente de la zone";
       z.coup        = (k >= 8 && StringFind(f[7], "COUP") == 0);
       z.reserve     = false;
+      z.reqId       = 0;
+      z.reqTime     = 0;
+      z.reqState    = 0;
+      z.reqCount    = 0;
       if(z.coup)
          z.status = "COUP DU MOIS : en attente de la zone";
       int m = ArraySize(newZones);
@@ -384,6 +410,71 @@ string ZoneKey(const Zone &z)
 //| dont la position est fermée libère sa place : la suivante passe   |
 //| de la réserve aux prioritaires.                                   |
 //+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//| v1.49 : feu vert de Claude avant chaque entrée                    |
+//+------------------------------------------------------------------+
+bool UseConfirm()
+  {
+   return ConfirmEntries && RoutineEnabled && ActionsEnabled && RoutineURL != "" && RoutineToken != "" &&
+          firesToday < RoutineMaxPerDay;
+  }
+
+bool WaitingConfirm()
+  {
+   for(int i = 0; i < ArraySize(zones); i++)
+      if(!zones[i].done && (zones[i].reqState == 1 || zones[i].reqState == 2))
+         return true;
+   return false;
+  }
+
+// GO reçu : on entre dès que les conditions sont bonnes ; délai dépassé : la demande tombe
+void ProcessConfirm()
+  {
+   for(int i = 0; i < ArraySize(zones); i++)
+     {
+      if(zones[i].done || (zones[i].reqState != 1 && zones[i].reqState != 2))
+         continue;
+      if(TimeLocal() - zones[i].reqTime > ConfirmTimeoutMin * 60)
+        {
+         zones[i].status = (zones[i].reqState == 1)
+                           ? StringFormat("pas de réponse de Claude en %d min (demande n°%I64d) : pas d'entrée, la zone reste active", ConfirmTimeoutMin, zones[i].reqId)
+                           : StringFormat("GO n°%I64d expiré sans conditions d'entrée valables : la zone reste active", zones[i].reqId);
+         zones[i].reqState = 0;
+         pushNeeded = true;
+         continue;
+        }
+      if(zones[i].reqState == 2)
+        {
+         MqlRates r[];
+         ArraySetAsSeries(r, true);
+         if(CopyRates(zones[i].sym, EntryTF(), 0, 30, r) >= 20)
+            TryEnter(zones[i], r);
+        }
+     }
+  }
+
+string HandleConfirm(const string act, long id, const string why)
+  {
+   for(int i = 0; i < ArraySize(zones); i++)
+     {
+      if(zones[i].reqId != id)
+         continue;
+      if(zones[i].reqState != 1)
+         return act + " n°" + IntegerToString(id) + " ignoré : demande déjà traitée ou expirée";
+      if(act == "GO")
+        {
+         zones[i].reqState = 2;
+         zones[i].status   = "GO de Claude reçu (" + why + ") : entrée en cours";
+         return "GO n°" + IntegerToString(id) + " pour " + zones[i].sym + " (" + why + ")";
+        }
+      zones[i].reqState = 3;
+      zones[i].done     = true;
+      zones[i].status   = "refusée par Claude (" + why + ")";
+      return "NON n°" + IntegerToString(id) + " pour " + zones[i].sym + " (" + why + ")";
+     }
+   return act + " n°" + IntegerToString(id) + " ignoré : demande inconnue";
+  }
+
 void MarkReserve()
   {
    int used = 0;
@@ -782,6 +873,37 @@ void TryEnter(Zone &z, const MqlRates &r[])
       return;
      }
 
+   // v1.49 : feu vert de Claude
+   if(UseConfirm() && z.reqState != 2)
+     {
+      if(z.reqState == 1)
+        {
+         z.status = StringFormat("signal %s : attente du feu vert de Claude (demande n°%I64d)", TfName(), z.reqId);
+         return;
+        }
+      if(z.reqCount >= ConfirmMaxAsk)
+        {
+         z.status = StringFormat("signal ignoré : déjà %d demandes de feu vert aujourd'hui pour cette zone", z.reqCount);
+         return;
+        }
+      reqSeq++;
+      z.reqId    = (long)TimeGMT() * 10 + (reqSeq % 10);
+      z.reqTime  = TimeLocal();
+      z.reqState = 1;
+      z.reqCount++;
+      double riskMoney = (tickSize > 0) ? risk / tickSize * tickValue * lots : 0;
+      QueueFire(StringFormat("DEMANDE D'ENTRÉE n°%I64d : %s %s %.2f lot au prix %s, SL %s, TP %s, ratio %.2f, risque %.0f %s "
+                             "(zone %s–%s). Réponds dans actions.csv par une ligne <id>;GO;%I64d;0;raison ou <id>;NON;%I64d;0;raison. "
+                             "Sans réponse en %d min : pas d'entrée.\n",
+                             z.reqId, z.sym, z.dir == -1 ? "VENTE" : "ACHAT", lots, DoubleToString(price, dg),
+                             DoubleToString(sl, dg), DoubleToString(tp, dg), rr, riskMoney, AccountInfoString(ACCOUNT_CURRENCY),
+                             DoubleToString(z.zlo, dg), DoubleToString(z.zhi, dg), z.reqId, z.reqId, ConfirmTimeoutMin));
+      urgentFire = true;
+      pushNeeded = true;
+      z.status = StringFormat("signal %s : feu vert demandé à Claude (demande n°%I64d)", TfName(), z.reqId);
+      return;
+     }
+
    sl = NormalizeDouble(sl, dg);
    tp = NormalizeDouble(tp, dg);
    string comment = isCoup ? "COUP:" + CoupMonth() : "AI:" + DoubleToString(z.tp1, dg);
@@ -792,6 +914,7 @@ void TryEnter(Zone &z, const MqlRates &r[])
    if(ok && (trade.ResultRetcode() == TRADE_RETCODE_DONE || trade.ResultRetcode() == TRADE_RETCODE_PLACED))
      {
       z.done   = true;
+      z.reqState = 0;
       // Mémorise le risque initial (distance entrée → SL) pour la sortie quand l'élan s'essouffle
       GlobalVariableSet("PE_R_" + IntegerToString((long)trade.ResultOrder()), MathAbs(trade.ResultPrice() - sl));
       z.status = StringFormat("ENTRÉE %s %.2f lot à %s, SL %s, TP %s (ratio %.2f)",
@@ -1004,6 +1127,8 @@ void PollActions()
 
 string ExecuteAction(const string act, ulong tk, double val, const string why)
   {
+   if(act == "GO" || act == "NON")
+      return HandleConfirm(act, (long)tk, why);
    if(!PositionSelectByTicket(tk))
       return act + " " + IntegerToString((long)tk) + " ignoré : position introuvable (déjà fermée ?)";
    string sym    = PositionGetString(POSITION_SYMBOL);
@@ -1197,8 +1322,10 @@ void SendPendingFire()
       pendingFire   = "";
       return;
      }
-   if(lastFire > 0 && TimeLocal() - lastFire < RoutineMinMinutes * 60)
+   if(!urgentFire && lastFire > 0 && TimeLocal() - lastFire < RoutineMinMinutes * 60)
       return;                           // trop tôt : on regroupera avec les prochains événements
+   if(urgentFire && lastFire > 0 && TimeLocal() - lastFire < 60)
+      return;                           // v1.49 : demande de feu vert : au plus une minute d'attente
 
    // Données fraîches pour Claude avant de le réveiller
    if(GitHubToken != "")
@@ -1231,6 +1358,7 @@ void SendPendingFire()
       firesToday++;
       routineStatus = "dernier réveil le " + TimeToString(CayenneNow(), TIME_DATE | TIME_MINUTES);
       pendingFire   = "";
+      urgentFire    = false;
       Print("Réveil de Claude envoyé : ", text);
       return;
      }
@@ -1498,7 +1626,7 @@ string BuildDataCsv()
         ";suivi=" + (TrailEnabled ? "H1" : "non") + ";ordres_claude=" + (ActionsEnabled ? "oui" : "non") +
         ";dernier_ordre=" + Clean(actionStatus) + ";reveil=" + Clean(routineStatus) +
         ";coup=" + (!CoupEnabled ? "désactivé" : (CoupUsedThisMonth() ? "déjà joué ce mois" : "disponible ce mois")) +
-        ";prioritaires=" + IntegerToString(PriorityZones) + "\n";
+        ";prioritaires=" + IntegerToString(PriorityZones) + ";feu_vert=" + (UseConfirm() ? "oui" : "non") + "\n";
 
    s += "#ZONE;symbole;sens;zone_bas;zone_haut;sl_jour;tp;tp1;touchee;etat\n";
    for(int i = 0; i < ArraySize(zones); i++)
