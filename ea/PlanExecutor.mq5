@@ -9,6 +9,8 @@
 //|    SYMBOLE;SENS;ZONE_BAS;ZONE_HAUT;SL_JOUR;TP;TP1                 |
 //|    GOLD#;SELL;4205;4219;4255;4115;4150                            |
 //|    8e colonne facultative COUP = coup du mois (v1.45)            |
+//|  v1.48 : DayFilter -> pas de vente si le marché est au-dessus   |
+//|    de son ouverture du jour, pas d'achat s'il est en dessous      |
 //|  v1.47 : PriorityZones = N -> seules les N premières zones du   |
 //|    plan entrent, les suivantes attendent en réserve              |
 //|                                                                  |
@@ -20,7 +22,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.47"
+#property version   "1.48"
 
 #include <Trade\Trade.mqh>
 
@@ -48,6 +50,7 @@ input int    MaxPositions       = 2;     // Positions ouvertes maximum en même 
 input int    PriorityZones      = 0;     // v1.47 : 0 = toutes les zones ; N = seules les N premières zones du plan peuvent entrer, les autres attendent en réserve
 input int    MaxLossesPerDay    = 2;     // Arrêt pour la journée après N pertes
 input double MinRR              = 1.5;   // Ratio gain/risque minimum à l'entrée
+input bool   DayFilter          = true;  // v1.48 : vente seulement sous l'ouverture du jour, achat seulement au-dessus
 input double MinStopATR         = 0.3;   // Stop minimum en fraction du mouvement moyen d'une journée (ATR D1)
 input double MinGainMoney       = 50;    // Gain minimum visé au TP (devise du compte), 0 = pas de minimum
 input double LockTriggerMoney   = 70;    // Verrouiller un gain à partir de (devise du compte), 0 = désactivé
@@ -669,6 +672,25 @@ void TryEnter(Zone &z, const MqlRates &r[])
      {
       z.status = "signal ignoré : position déjà ouverte sur ce symbole";
       return;
+     }
+   // v1.48 : le marché du jour doit aller dans le sens du trade (le plan date de 9h, le marché a pu se retourner)
+   if(DayFilter)
+     {
+      double dayOpen = iOpen(z.sym, PERIOD_D1, 0);
+      double bNow = SymbolInfoDouble(z.sym, SYMBOL_BID);
+      double aNow = SymbolInfoDouble(z.sym, SYMBOL_ASK);
+      if(dayOpen > 0 && z.dir == -1 && bNow > dayOpen)
+        {
+         z.status = "signal ignoré : le marché monte aujourd'hui (au-dessus de l'ouverture du jour " +
+                    DoubleToString(dayOpen, SymDigits(z.sym)) + "), pas de vente";
+         return;
+        }
+      if(dayOpen > 0 && z.dir == 1 && aNow < dayOpen)
+        {
+         z.status = "signal ignoré : le marché baisse aujourd'hui (sous l'ouverture du jour " +
+                    DoubleToString(dayOpen, SymDigits(z.sym)) + "), pas d'achat";
+         return;
+        }
      }
    // v1.44 : pas d'entrée si le prix a déjà dépassé le TP1 (le stop passerait au prix d'entrée aussitôt)
    double bidNow = SymbolInfoDouble(z.sym, SYMBOL_BID);
