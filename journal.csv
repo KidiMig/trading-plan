@@ -220,3 +220,4 @@
 2026-11-05 12:58;518287014;NGASCash#;GARDER;-84% du risque;dernière clôture H1 (14h UTC) 2.722 sous le haut de zone, bougie 15h en cours à 2.755; sortie si clôture H1 >2.735 (SL 2.775)
 2026-11-06 11:34;518347015;NGASCash#;GARDER;-16% du risque;position ouverte il y a 4 min, sortie si clôture H1 <2.717 (mi-chemin bas de zone 2.735 / SL 2.698)
 2026-11-06 10:46;518347015;NGASCash#;GARDER;-16% du risque;ouverte il y a moins de 30 min, scénario intact, sortie seulement sur clôture H1 sous le niveau mi-chemin zone/SL
+2026-11-06 12:30;518347015;NGASCash#;GARDER;-52% du risque;prix 2.737 à mi-chemin du stop, aucune clôture H1 sous 2.717 (mi-chemin bas de zone/SL 2.698), pas de cassure H1, pas d'actu cassant le scénario
