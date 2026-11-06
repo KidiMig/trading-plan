@@ -9,6 +9,8 @@
 //|    SYMBOLE;SENS;ZONE_BAS;ZONE_HAUT;SL_JOUR;TP;TP1                 |
 //|    GOLD#;SELL;4205;4219;4255;4115;4150                            |
 //|    8e colonne facultative COUP = coup du mois (v1.45)            |
+//|  v1.50 : FastMoveAlert -> réveil immédiat si le prix part contre |
+//|    une position de plus de FastMoveATR × ATR D1 en 15 minutes     |
 //|  v1.49 : ConfirmEntries -> avant chaque entrée, l'EA réveille   |
 //|    Claude et attend GO ou NON dans actions.csv                   |
 //|  v1.48 : DayFilter -> pas de vente si le marché est au-dessus   |
@@ -24,7 +26,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.49"
+#property version   "1.50"
 
 #include <Trade\Trade.mqh>
 
@@ -86,6 +88,11 @@ input group "Feu vert de Claude avant chaque entrée (v1.49)"
 input bool   ConfirmEntries     = true;  // Avant d'entrer, demander GO ou NON à Claude (réveil de la routine)
 input int    ConfirmTimeoutMin  = 30;    // Sans réponse après X minutes : demande abandonnée, pas d'entrée
 input int    ConfirmMaxAsk      = 2;     // Demandes maximum par zone et par jour
+
+input group "Alerte mouvement brutal (v1.50)"
+input bool   FastMoveAlert      = true;  // Réveiller Claude tout de suite si le prix part fort contre une position
+input double FastMoveATR        = 0.5;   // Seuil : fraction du mouvement moyen d'une journée (ATR D1)
+input int    FastMoveMinutes    = 15;    // ... parcourue en moins de X minutes
 
 input group "Coup du mois (une zone COUP par mois, en pyramide)"
 input bool   CoupEnabled        = true;  // Jouer la zone marquée COUP dans le plan (une seule fois par mois)
@@ -1252,6 +1259,35 @@ void CheckEvents()
       // 3 b. Prix proche du SL (moins de 20 % de la distance de départ)
       if(risk > 0 && sl > 0 && !locked && MathAbs(price - sl) < 0.2 * risk && Once(p + "nearsl"))
          msg += head + "le prix est à moins de 20 % du stop " + DoubleToString(sl, dg) + ".\n";
+
+      // 3 c. v1.50 : mouvement brutal contre la position (au plus une fois par heure et par position)
+      if(FastMoveAlert && FastMoveATR > 0)
+        {
+         MqlRates dr[];
+         ArraySetAsSeries(dr, true);
+         double atrD = (CopyRates(sym, PERIOD_D1, 0, 16, dr) >= 16) ? AtrM15(dr, 14) : 0;
+         int nb = MathMax(1, FastMoveMinutes / 5) + 1;          // bougies M5 couvrant la fenêtre
+         MqlRates m5[];
+         ArraySetAsSeries(m5, true);
+         if(atrD > 0 && CopyRates(sym, PERIOD_M5, 0, nb, m5) >= nb)
+           {
+            double ref = buy ? m5[0].high : m5[0].low;
+            for(int q = 1; q < nb; q++)
+               if(m5[q].time >= opened - 300)
+                  ref = buy ? MathMax(ref, m5[q].high) : MathMin(ref, m5[q].low);
+            double move = buy ? ref - bid : ask - ref;
+            string kf = p + "fast" + IntegerToString((long)(TimeCurrent() / 3600));
+            if(move >= FastMoveATR * atrD && Once(kf))
+              {
+               msg += head + StringFormat("MOUVEMENT BRUTAL : le prix a reculé de %s (%.2f ATR) en %d min contre la position. "
+                                          "Cherche la cause tout de suite : CLOSE seulement si une vraie actualité casse le scénario, "
+                                          "et dans ce cas ajoute dans plan.csv une zone dans l'autre sens, à jouer sur rebond. "
+                                          "Sans actu, garde : le SL fait son travail.\n",
+                                          DoubleToString(move, dg), move / atrD, FastMoveMinutes);
+               urgentFire = true;
+              }
+           }
+        }
 
       // 4. Élan qui s'inverse en H1 (au plus une fois toutes les 2 heures par position)
       datetime bar1 = iTime(sym, PERIOD_H1, 1);
