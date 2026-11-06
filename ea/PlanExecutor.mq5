@@ -9,6 +9,8 @@
 //|    SYMBOLE;SENS;ZONE_BAS;ZONE_HAUT;SL_JOUR;TP;TP1                 |
 //|    GOLD#;SELL;4205;4219;4255;4115;4150                            |
 //|    8e colonne facultative COUP = coup du mois (v1.45)            |
+//|  v1.47 : PriorityZones = N -> seules les N premières zones du   |
+//|    plan entrent, les suivantes attendent en réserve              |
 //|                                                                  |
 //|  À autoriser dans Outils > Options > Expert Advisors > WebRequest |
 //|    https://raw.githubusercontent.com                             |
@@ -18,7 +20,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.46"
+#property version   "1.47"
 
 #include <Trade\Trade.mqh>
 
@@ -43,6 +45,7 @@ input ENUM_ENTRY_MODE EntryMode = ENTRY_M5; // Mode d'entrée dans la zone
 input string PlanURL            = "https://raw.githubusercontent.com/kidimig/trading-plan/main/plan.csv"; // Adresse du plan
 input double RiskPercent        = 1.0;   // Risque par trade (% du solde)
 input int    MaxPositions       = 2;     // Positions ouvertes maximum en même temps
+input int    PriorityZones      = 0;     // v1.47 : 0 = toutes les zones ; N = seules les N premières zones du plan peuvent entrer, les autres attendent en réserve
 input int    MaxLossesPerDay    = 2;     // Arrêt pour la journée après N pertes
 input double MinRR              = 1.5;   // Ratio gain/risque minimum à l'entrée
 input double MinStopATR         = 0.3;   // Stop minimum en fraction du mouvement moyen d'une journée (ATR D1)
@@ -97,6 +100,7 @@ struct Zone
    bool              done;
    string            status;
    bool              coup;         // v1.45 : zone « coup du mois » (8e colonne COUP)
+   bool              reserve;      // v1.47 : zone en réserve (hors des PriorityZones premières)
   };
 
 Zone     zones[];
@@ -173,6 +177,7 @@ void OnTimer()
 
    if(PlanIsToday())
      {
+      MarkReserve();
       for(int i = 0; i < ArraySize(zones); i++)
          ProcessZone(zones[i]);
      }
@@ -294,6 +299,7 @@ void ParsePlan(string text)
       z.done        = false;
       z.status      = "en attente de la zone";
       z.coup        = (k >= 8 && StringFind(f[7], "COUP") == 0);
+      z.reserve     = false;
       if(z.coup)
          z.status = "COUP DU MOIS : en attente de la zone";
       int m = ArraySize(newZones);
@@ -367,6 +373,31 @@ string ZoneKey(const Zone &z)
 //+------------------------------------------------------------------+
 //| Logique d'une zone : entrée en zone puis cassure M15             |
 //+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//| v1.47 : zones prioritaires et zones de réserve                    |
+//| Les zones du plan sont dans l'ordre du classement. Une zone prend |
+//| une place tant qu'elle attend une entrée ou que sa position est   |
+//| ouverte. Une zone annulée, refusée (lot minimum trop gros) ou     |
+//| dont la position est fermée libère sa place : la suivante passe   |
+//| de la réserve aux prioritaires.                                   |
+//+------------------------------------------------------------------+
+void MarkReserve()
+  {
+   int used = 0;
+   for(int i = 0; i < ArraySize(zones); i++)
+     {
+      bool occupies = !zones[i].done || CountPositions(zones[i].sym) > 0;
+      if(PriorityZones <= 0)
+        {
+         zones[i].reserve = false;
+         continue;
+        }
+      zones[i].reserve = (!zones[i].done && used >= PriorityZones);
+      if(occupies && !zones[i].reserve)
+         used++;
+     }
+  }
+
 void ProcessZone(Zone &z)
   {
    if(z.done)
@@ -627,6 +658,11 @@ void TryEnter(Zone &z, const MqlRates &r[])
    if(why != "")
      {
       z.status = "signal " + (EntryMode == ENTRY_DIRECT ? "d'entrée directe" : TfName()) + " ignoré : " + why;
+      return;
+     }
+   if(z.reserve)
+     {
+      z.status = StringFormat("signal ignoré : zone en réserve (seules les %d premières zones actives du plan entrent)", PriorityZones);
       return;
      }
    if(CountPositions(z.sym) > 0)
@@ -1439,7 +1475,8 @@ string BuildDataCsv()
         ";risque=" + D(RiskPercent, 2) + ";maxpos=" + IntegerToString(MaxPositions) + ";mode=" + EntryModeName() +
         ";suivi=" + (TrailEnabled ? "H1" : "non") + ";ordres_claude=" + (ActionsEnabled ? "oui" : "non") +
         ";dernier_ordre=" + Clean(actionStatus) + ";reveil=" + Clean(routineStatus) +
-        ";coup=" + (!CoupEnabled ? "désactivé" : (CoupUsedThisMonth() ? "déjà joué ce mois" : "disponible ce mois")) + "\n";
+        ";coup=" + (!CoupEnabled ? "désactivé" : (CoupUsedThisMonth() ? "déjà joué ce mois" : "disponible ce mois")) +
+        ";prioritaires=" + IntegerToString(PriorityZones) + "\n";
 
    s += "#ZONE;symbole;sens;zone_bas;zone_haut;sl_jour;tp;tp1;touchee;etat\n";
    for(int i = 0; i < ArraySize(zones); i++)
@@ -1447,7 +1484,7 @@ string BuildDataCsv()
       int dg = SymDigits(zones[i].sym);
       s += "ZONE;" + zones[i].sym + ";" + (zones[i].dir == 1 ? "BUY" : "SELL") + ";" + D(zones[i].zlo, dg) + ";" +
            D(zones[i].zhi, dg) + ";" + D(zones[i].slDay, dg) + ";" + D(zones[i].tp, dg) + ";" + D(zones[i].tp1, dg) + ";" +
-           (zones[i].touched ? "1" : "0") + ";" + Clean(zones[i].status) + "\n";
+           (zones[i].touched ? "1" : "0") + ";" + (zones[i].reserve ? "réserve : " : "") + Clean(zones[i].status) + "\n";
      }
 
    s += "#POS;ticket;symbole;type;volume;ouverture_utc;prix_ouverture;sl;tp;prix_actuel;profit;swap;magic;commentaire\n";
@@ -1683,13 +1720,15 @@ void UpdateComment()
         StringFormat("disponible (risque %.0f %%, %d ajouts)", CoupRiskPercent, CoupMaxAdds))) + "\n";
    string why = BlockReason();
    s += "Entrées : " + (why == "" ? "autorisées" : "bloquées (" + why + ")") + "\n";
-   s += StringFormat("Mode : %s · risque %.1f %% · positions %d/%d · pertes du jour %d/%d\n",
-                     EntryModeName(), RiskPercent, CountPositions(""), MaxPositions, LossesToday(), MaxLossesPerDay);
+   s += StringFormat("Mode : %s · risque %.1f %% · positions %d/%d · pertes du jour %d/%d%s\n",
+                     EntryModeName(), RiskPercent, CountPositions(""), MaxPositions, LossesToday(), MaxLossesPerDay,
+                     PriorityZones > 0 ? StringFormat(" · %d zones prioritaires, les autres en réserve", PriorityZones) : "");
    for(int i = 0; i < ArraySize(zones); i++)
      {
       Zone z = zones[i];
       int dg = SymDigits(z.sym);
-      s += StringFormat("%s %s zone %s–%s : %s\n", z.sym, z.dir == 1 ? "ACHAT" : "VENTE",
+      s += StringFormat("%s%s %s zone %s–%s : %s\n", (PriorityZones > 0 && !z.done) ? (z.reserve ? "[réserve] " : "[prioritaire] ") : "",
+                        z.sym, z.dir == 1 ? "ACHAT" : "VENTE",
                         DoubleToString(z.zlo, dg), DoubleToString(z.zhi, dg), z.status);
      }
    Comment(s);

@@ -1,0 +1,25 @@
+; Réglages du compte réel (200 €) - PlanExecutor v1.47
+DataBranch=reel
+RiskPercent=5
+MaxPositions=2
+PriorityZones=2
+MaxLossesPerDay=2
+MinRR=1.5
+MinStopATR=0.7
+MinGainMoney=10
+LockTriggerMoney=14
+LockKeepMoney=10
+Paused=false
+AllowRealAccount=true
+EntryStartHour=3
+EntryEndHour=16
+FridayCloseHour=16
+NewsMinutes=30
+CayenneUtcOffset=-3
+Magic=20261110
+TrailEnabled=true
+TrailStartR=0.5
+TrailBarsH1=2
+ActionsEnabled=false
+RoutineEnabled=false
+CoupEnabled=false
