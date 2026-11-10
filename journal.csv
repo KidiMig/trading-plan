@@ -227,3 +227,4 @@
 2026-11-06 13:45;518347015;NGASCash#;GARDER;-16% du risque;prix 2.766, clôture H1 15h UTC 2.736 au-dessus de 2.717 (sortie si clôture H1 <2.717, SL 2.698); pas d'actu cassant le scénario
 2026-11-06 14:46;518347015;NGASCash#;GARDER;-16% du risque;prix 2.766, clôture H1 16h UTC 2.754 au-dessus de 2.717 (sortie si clôture H1 <2.717, SL 2.698); pas d'actu cassant le scénario
 2026-11-06 15:46;518347015;NGASCash#;GARDER;+11% du risque;prix 2.788, clôture H1 17h UTC 2.770 au-dessus de 2.717 (sortie si clôture H1 <2.717, SL 2.698); fermeture vendredi 16h Cayenne par l'EA
+2026-11-10 13:23;17943276631;NGASCash#;GO;0% du risque;demande d entree achat 0.79 lot a 3.060 SL 2.973 TP 3.235 (1:2.01, 69 EUR); bid 3.051 au-dessus de l ouverture 3.012 et du creux H1 3.003; froid jusqu au 20 nov. et GNL record (Henry Hub dec. +7%); CPI passe, prochaine annonce gaz EIA jeudi 12h30; invalidation cloture D1 <2.965 non remplie; regle risque actions non applicable au gaz (Nasdaq -1.0%)
