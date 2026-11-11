@@ -100,8 +100,8 @@ details[open] summary{margin-bottom:8px}
     <div class="fld"><label for="rk">Risque par trade (%)</label><input id="rk" type="number" min="0.5" max="30" step="0.5" value="5"></div>
   </div>
   <div class="presets" role="group" aria-label="Préréglages">
-    <button class="btn" type="button" data-p="ea">EA actuel (v1.50)</button>
-    <button class="btn" type="button" data-p="nofilter">Sans filtre du jour</button>
+    <button class="btn" type="button" data-p="ea">EA actuel (sans blocages)</button>
+    <button class="btn" type="button" data-p="nofilter">Ancien réglage (avec blocages)</button>
     <button class="btn" type="button" data-p="reel">Compte réel 200 €</button>
   </div>
   <label class="tg"><input type="checkbox" id="o-day"><span>Filtre du jour<small>Vente seulement sous l'ouverture du jour, achat seulement au-dessus</small></span></label>
@@ -149,7 +149,7 @@ details[open] summary{margin-bottom:8px}
   <h2>Ce que le simulateur ne voit pas</h2>
   <ul>
     <li>Les bougies H1 cachent l'ordre exact des mouvements : quand le SL et l'objectif tombent dans la même heure, le simulateur compte une perte (prudent).</li>
-    <li>L'EA attend une cassure M5 et ton feu vert avant d'entrer : il prend moins de trades que la simulation, souvent à un meilleur prix.</li>
+    <li>L'EA attend une cassure M5 et le feu vert de Claude avant d'entrer : il prend moins de trades que la simulation, souvent à un meilleur prix. Le jugement du feu vert (actu, annonce imminente) n'est pas rejoué.</li>
     <li>Le verrouillage du gain en euros, les décisions de la surveillance et les swaps de nuit ne sont pas rejoués ; le spread est compté au niveau actuel.</li>
     <li>Le lot minimum n'est pas pris en compte : avec 200 €, l'or, l'argent et le Nasdaq ne sont pas jouables (préréglage « Compte réel 200 € »).</li>
     <li>Le futur n'est qu'un tirage dans le passé : moins de 60 trades, c'est encore peu. Prends les fourchettes, pas le chiffre exact.</li>
@@ -176,9 +176,9 @@ details[open] summary{margin-bottom:8px}
   var markets=SYMS.slice();
   var mk=$('mk'); SYMS.forEach(function(s){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=NAMES[s];b.dataset.s=s;b.onclick=function(){var i=markets.indexOf(s);if(i>=0)markets.splice(i,1);else markets.push(s);setPreset(null);run();};mk.appendChild(b);});
   var PRE={
-    ea:{day:true,news:true,skip:false,close:false,be:true,trail:true,entry:'edge',end:16,top:0,max:4,cap:null,mk:SYMS},
-    nofilter:{day:false,news:true,skip:false,close:false,be:true,trail:true,entry:'edge',end:16,top:0,max:4,cap:null,mk:SYMS},
-    reel:{day:true,news:true,skip:false,close:false,be:true,trail:true,entry:'edge',end:16,top:2,max:2,cap:200,mk:["BRENTCash#","OILCash#","NGASCash#","US500Cash#","EURUSD#","GBPUSD#","USDJPY#"]}
+    ea:{day:false,news:false,skip:false,close:false,be:true,trail:true,entry:'edge',end:16,top:0,max:4,cap:null,mk:SYMS},
+    nofilter:{day:true,news:true,skip:false,close:false,be:true,trail:true,entry:'edge',end:16,top:0,max:4,cap:null,mk:SYMS},
+    reel:{day:false,news:true,skip:false,close:false,be:true,trail:true,entry:'edge',end:16,top:2,max:2,cap:200,mk:["BRENTCash#","OILCash#","NGASCash#","US500Cash#","EURUSD#","GBPUSD#","USDJPY#"]}
   };
   function setPreset(p){document.querySelectorAll('[data-p]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.p===p?'true':'false');});}
   function apply(p){var o=PRE[p];$('o-day').checked=o.day;$('o-news').checked=o.news;$('o-skip').checked=o.skip;$('o-close').checked=o.close;$('o-be').checked=o.be;$('o-trail').checked=o.trail;$('o-entry').value=o.entry;$('o-end').value=String(o.end);$('o-top').value=String(o.top);$('o-max').value=String(o.max);if(o.cap)$('cap').value=o.cap;else if(p!=='reel'&&+$('cap').value===200)$('cap').value=1040;markets=o.mk.slice();setPreset(p);run();}
