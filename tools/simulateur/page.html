@@ -1,0 +1,252 @@
+<title>Simulateur PlanExecutor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: banc d'essai du système — réglages à gauche (en haut sur téléphone), résultats du passé puis projection du futur à droite */
+:root{
+  --bg:#ECEFF3; --surface:#FFFFFF; --surface-2:#F4F6F9; --line:#D5DBE3; --line-2:#B9C3CE;
+  --fg:#13202C; --muted:#5B6977; --accent:#2752C4; --accent-soft:rgba(39,82,196,.12);
+  --gain:#0E7F57; --loss:#BF3B28; --gain-soft:rgba(14,127,87,.12); --loss-soft:rgba(191,59,40,.12);
+  --real:#A86B12; --band:rgba(39,82,196,.14);
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E141A; --surface:#151D25; --surface-2:#1B252F; --line:#283542; --line-2:#3A4957;
+  --fg:#E2E8EE; --muted:#8C9AA8; --accent:#7398F3; --accent-soft:rgba(115,152,243,.16);
+  --gain:#3DC08C; --loss:#EE6F58; --gain-soft:rgba(61,192,140,.14); --loss-soft:rgba(238,111,88,.14);
+  --real:#E2A94B; --band:rgba(115,152,243,.18); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E141A; --surface:#151D25; --surface-2:#1B252F; --line:#283542; --line-2:#3A4957;
+  --fg:#E2E8EE; --muted:#8C9AA8; --accent:#7398F3; --accent-soft:rgba(115,152,243,.16);
+  --gain:#3DC08C; --loss:#EE6F58; --gain-soft:rgba(61,192,140,.14); --loss-soft:rgba(238,111,88,.14);
+  --real:#E2A94B; --band:rgba(115,152,243,.18); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14.5px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px 56px;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+header h1{font-size:30px;font-weight:700}
+header p{margin:4px 0 0;color:var(--muted);max-width:75ch}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.ctl{padding:16px;display:flex;flex-direction:column;gap:14px;position:sticky;top:12px}
+@media (max-width:900px){.ctl{position:static}}
+.ctl h2,.sec h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld label{font-size:12px;color:var(--muted)}
+.fld input,.fld select{font:inherit;font-family:var(--f-mono);font-size:14px;color:var(--fg);background:var(--surface-2);border:1px solid var(--line-2);border-radius:6px;padding:7px 9px;width:100%}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.btn{font:inherit;font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:6px;border:1px solid var(--line-2);background:var(--surface);color:var(--fg);cursor:pointer}
+.btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.tg{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;cursor:pointer}
+.tg input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+.tg small{display:block;color:var(--muted);font-size:12px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font:inherit;font-family:var(--f-mono);font-size:11.5px;padding:3px 8px;border-radius:5px;border:1px solid var(--line-2);background:var(--surface);color:var(--muted);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--fg)}
+.main{display:flex;flex-direction:column;gap:18px;min-width:0}
+.sec{padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.sec-head{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;align-items:baseline}
+.sec-head h3{font-size:22px;font-weight:700}
+.sec-head span{color:var(--muted);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:480px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);padding:10px 12px;min-width:0}
+.kpi span{display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kpi b{display:block;font-family:var(--f-mono);font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi i{font-style:normal;font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+.pos{color:var(--gain)} .neg{color:var(--loss)}
+.chart{position:relative;height:300px}
+.chart canvas{display:block;width:100%;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+.legend i.area{height:10px;border:0;background:var(--band);vertical-align:-1px}
+.note{font-size:13px;color:var(--muted);max-width:80ch;margin:0}
+.verdict{padding:10px 12px;border-radius:6px;background:var(--surface-2);border-left:3px solid var(--accent);font-size:13.5px;margin:0}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--surface-2)}
+td.n,th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+details summary{cursor:pointer;font-weight:600;font-size:13.5px}
+details[open] summary{margin-bottom:8px}
+.probs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:600px){.probs{grid-template-columns:minmax(0,1fr)}}
+.prob{border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.prob span{font-size:12.5px;color:var(--muted)}
+.prob b{display:block;font-family:var(--f-mono);font-size:22px;font-weight:600}
+.limits ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>Simulateur PlanExecutor</h1>
+  <p>Rejoue chaque zone que le plan du matin a donnée à l'EA, sur les vraies bougies H1 de XM, avec les règles que tu choisis. Puis projette le résultat sur les mois à venir. Données du <span class="mono" id="per"></span>.</p>
+</header>
+
+<div class="grid">
+<aside class="panel ctl" aria-label="Réglages">
+  <h2>Réglages</h2>
+  <div class="row2">
+    <div class="fld"><label for="cap">Capital de départ (€)</label><input id="cap" type="number" min="50" step="50" value="1040"></div>
+    <div class="fld"><label for="rk">Risque par trade (%)</label><input id="rk" type="number" min="0.5" max="30" step="0.5" value="5"></div>
+  </div>
+  <div class="presets" role="group" aria-label="Préréglages">
+    <button class="btn" type="button" data-p="ea">EA actuel (v1.50)</button>
+    <button class="btn" type="button" data-p="nofilter">Sans filtre du jour</button>
+    <button class="btn" type="button" data-p="reel">Compte réel 200 €</button>
+  </div>
+  <label class="tg"><input type="checkbox" id="o-day"><span>Filtre du jour<small>Vente seulement sous l'ouverture du jour, achat seulement au-dessus</small></span></label>
+  <label class="tg"><input type="checkbox" id="o-news"><span>Pause autour des annonces<small>Pas d'entrée 30 min avant et après une annonce forte</small></span></label>
+  <label class="tg"><input type="checkbox" id="o-skip"><span>Aucun trade les jours d'annonce forte<small>Emploi, inflation, banques centrales…</small></span></label>
+  <label class="tg"><input type="checkbox" id="o-close"><span>Fermer avant une annonce forte<small>Sortie la dernière heure avant le chiffre</small></span></label>
+  <label class="tg"><input type="checkbox" id="o-be"><span>Stop au prix d'entrée au TP1</span></label>
+  <label class="tg"><input type="checkbox" id="o-trail"><span>Stop suiveur H1 dès 0,5 R</span></label>
+  <div class="row2">
+    <div class="fld"><label for="o-entry">Prix d'entrée</label><select id="o-entry"><option value="edge">Bord de zone</option><option value="mid">Milieu de zone</option></select></div>
+    <div class="fld"><label for="o-end">Fin des entrées</label><select id="o-end"><option value="16">16h</option><option value="18">18h</option></select></div>
+  </div>
+  <div class="row2">
+    <div class="fld"><label for="o-top">Zones jouées</label><select id="o-top"><option value="0">Toutes</option><option value="2">2 premières</option><option value="4">4 premières</option></select></div>
+    <div class="fld"><label for="o-max">Positions max</label><select id="o-max"><option>2</option><option>3</option><option selected>4</option><option>6</option></select></div>
+  </div>
+  <div class="fld"><label>Marchés</label><div class="chips" id="mk" role="group" aria-label="Marchés"></div></div>
+</aside>
+
+<div class="main">
+<section class="panel sec" aria-labelledby="h-past">
+  <div class="sec-head"><h3 id="h-past">Le passé : ce que ces règles auraient donné</h3><span id="past-sub"></span></div>
+  <div class="kpis" id="kpis"></div>
+  <p class="verdict" id="verdict"></p>
+  <div class="chart"><canvas id="c-past" aria-label="Courbe du compte simulée et réelle"></canvas></div>
+  <div class="legend"><span><i style="border-color:var(--accent)"></i>Simulation avec tes réglages</span><span><i style="border-color:var(--real);border-top-style:dashed"></i>Résultat réel de l'EA (ramené à ton capital)</span></div>
+  <details><summary>Par marché</summary><div class="tw"><table id="t-mk"></table></div></details>
+  <details><summary>Tous les trades simulés</summary><div class="tw"><table id="t-tr"></table></div></details>
+</section>
+
+<section class="panel sec" aria-labelledby="h-fut">
+  <div class="sec-head"><h3 id="h-fut">Le futur : 2 000 mois possibles</h3><span>tirés au hasard dans les résultats ci-dessus</span></div>
+  <div class="row2" style="max-width:640px;grid-template-columns:repeat(3,minmax(0,1fr))">
+    <div class="fld"><label for="f-h">Horizon</label><select id="f-h"><option value="1">1 mois</option><option value="3" selected>3 mois</option><option value="6">6 mois</option><option value="12">12 mois</option></select></div>
+    <div class="fld"><label for="f-n">Trades par mois</label><input id="f-n" type="number" min="5" max="200" step="1"></div>
+    <div class="fld"><label for="f-src">Résultats de base</label><select id="f-src"><option value="sim">Simulation (réglages)</option><option value="real">Trades réels de l'EA</option></select></div>
+  </div>
+  <div class="kpis" id="fk" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
+  <div class="chart"><canvas id="c-fut" aria-label="Projection du compte"></canvas></div>
+  <div class="legend"><span><i class="area"></i>8 mois sur 10 finissent dans cette bande</span><span><i style="border-color:var(--accent)"></i>Cas médian</span><span><i style="border-color:var(--line-2);border-top-style:dashed"></i>Capital de départ</span></div>
+  <div class="probs" id="probs"></div>
+</section>
+
+<section class="panel sec limits">
+  <h2>Ce que le simulateur ne voit pas</h2>
+  <ul>
+    <li>Les bougies H1 cachent l'ordre exact des mouvements : quand le SL et l'objectif tombent dans la même heure, le simulateur compte une perte (prudent).</li>
+    <li>L'EA attend une cassure M5 et ton feu vert avant d'entrer : il prend moins de trades que la simulation, souvent à un meilleur prix.</li>
+    <li>Le verrouillage du gain en euros, les décisions de la surveillance et les swaps de nuit ne sont pas rejoués ; le spread est compté au niveau actuel.</li>
+    <li>Le lot minimum n'est pas pris en compte : avec 200 €, l'or, l'argent et le Nasdaq ne sont pas jouables (préréglage « Compte réel 200 € »).</li>
+    <li>Le futur n'est qu'un tirage dans le passé : moins de 60 trades, c'est encore peu. Prends les fourchettes, pas le chiffre exact.</li>
+  </ul>
+</section>
+</div>
+</div>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>__ENGINE__</script>
+<script>
+(function(){
+  var D=JSON.parse(document.getElementById('data').textContent), E=window.SimEngine;
+  var SYMS=["GOLD#","SILVER#","BRENTCash#","OILCash#","NGASCash#","US500Cash#","US100Cash#","EURUSD#","GBPUSD#","USDJPY#"];
+  var NAMES={"GOLD#":"Or","SILVER#":"Argent","BRENTCash#":"Brent","OILCash#":"WTI","NGASCash#":"Gaz","US500Cash#":"S&P 500","US100Cash#":"Nasdaq 100","EURUSD#":"EURUSD","GBPUSD#":"GBPUSD","USDJPY#":"USDJPY"};
+  var dates=Object.keys(D.plans).sort();
+  function fd(d){var m=["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];var x=new Date(d+"T12:00:00Z");return x.getUTCDate()+" "+m[x.getUTCMonth()];}
+  document.getElementById('per').textContent=fd(dates[0])+" au "+fd(dates[dates.length-1])+" 2026 · "+dates.length+" jours de plan";
+  var $=function(id){return document.getElementById(id);};
+  var fmt=new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}), fmt2=new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  function eur(v){return fmt.format(v)+" €";}
+  function pct(v,s){return (s&&v>0?"+":"")+fmt.format(v*100)+" %";}
+  var markets=SYMS.slice();
+  var mk=$('mk'); SYMS.forEach(function(s){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=NAMES[s];b.dataset.s=s;b.onclick=function(){var i=markets.indexOf(s);if(i>=0)markets.splice(i,1);else markets.push(s);setPreset(null);run();};mk.appendChild(b);});
+  var PRE={
+    ea:{day:true,news:true,skip:false,close:false,be:true,trail:true,entry:'edge',end:16,top:0,max:4,cap:null,mk:SYMS},
+    nofilter:{day:false,news:true,skip:false,close:false,be:true,trail:true,entry:'edge',end:16,top:0,max:4,cap:null,mk:SYMS},
+    reel:{day:true,news:true,skip:false,close:false,be:true,trail:true,entry:'edge',end:16,top:2,max:2,cap:200,mk:["BRENTCash#","OILCash#","NGASCash#","US500Cash#","EURUSD#","GBPUSD#","USDJPY#"]}
+  };
+  function setPreset(p){document.querySelectorAll('[data-p]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.p===p?'true':'false');});}
+  function apply(p){var o=PRE[p];$('o-day').checked=o.day;$('o-news').checked=o.news;$('o-skip').checked=o.skip;$('o-close').checked=o.close;$('o-be').checked=o.be;$('o-trail').checked=o.trail;$('o-entry').value=o.entry;$('o-end').value=String(o.end);$('o-top').value=String(o.top);$('o-max').value=String(o.max);if(o.cap)$('cap').value=o.cap;else if(p!=='reel'&&+$('cap').value===200)$('cap').value=1040;markets=o.mk.slice();setPreset(p);run();}
+  document.querySelectorAll('[data-p]').forEach(function(b){b.onclick=function(){apply(b.dataset.p);};});
+  ['o-day','o-news','o-skip','o-close','o-be','o-trail','o-entry','o-end','o-top','o-max'].forEach(function(id){$(id).addEventListener('change',function(){setPreset(null);run();});});
+  ['cap','rk','f-h','f-n','f-src'].forEach(function(id){$(id).addEventListener('input',run);$(id).addEventListener('change',run);});
+
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+  function prep(cv){var r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1;cv.width=Math.max(1,r.width*dpr);cv.height=Math.max(1,r.height*dpr);var x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return {x:x,w:r.width,h:r.height};}
+  function niceTicks(lo,hi,n){var span=hi-lo||1,step=Math.pow(10,Math.floor(Math.log10(span/n))),e=span/n/step;step*=e>=5?10:e>=2?5:e>=1?2:1;var a=[];for(var v=Math.ceil(lo/step)*step;v<=hi+1e-9;v+=step)a.push(v);return {t:a,lo:Math.floor(lo/step)*step,hi:Math.ceil(hi/step)*step};}
+  function axes(g,lo,hi,pad,xlabels){var x=g.x;var tk=niceTicks(lo,hi,5);x.font='11px "IBM Plex Mono", ui-monospace, monospace';x.fillStyle=css('--muted');x.strokeStyle=css('--line');x.lineWidth=1;x.textAlign='right';x.textBaseline='middle';
+    var Y=function(v){return pad.t+(g.h-pad.t-pad.b)*(1-(v-tk.lo)/(tk.hi-tk.lo));};
+    tk.t.forEach(function(v){var y=Math.round(Y(v))+.5;x.beginPath();x.moveTo(pad.l,y);x.lineTo(g.w-pad.r,y);x.stroke();x.fillText(fmt.format(v),pad.l-6,y);});
+    x.textBaseline='top';(xlabels||[]).forEach(function(l){var w=x.measureText(l.t).width;x.textAlign='left';x.fillText(l.t,Math.max(pad.l-10,Math.min(l.x-w/2,g.w-pad.r-w)),g.h-pad.b+6);});
+    return Y;}
+  function drawPast(sim,real,cap){var g=prep($('c-past')),x=g.x,pad={l:58,r:14,t:10,b:24};x.clearRect(0,0,g.w,g.h);
+    var t0=Date.parse(dates[0]+"T00:00:00Z"),t1=Date.parse(dates[dates.length-1]+"T23:00:00Z");
+    var X=function(t){return pad.l+(g.w-pad.l-pad.r)*((Date.parse(t.replace(' ','T')+':00Z')-t0)/(t1-t0));};
+    var all=sim.concat(real).map(function(p){return p.v;}).concat([cap]);var lo=Math.min.apply(null,all),hi=Math.max.apply(null,all);var m=(hi-lo)*.08||cap*.05;
+    var labs=[];dates.forEach(function(d,i){if(i%5===0)labs.push({t:fd(d),x:X(d+" 12:00")});});
+    var Y=axes(g,lo-m,hi+m,pad,labs);
+    x.setLineDash([3,3]);x.strokeStyle=css('--line-2');x.beginPath();x.moveTo(pad.l,Y(cap));x.lineTo(g.w-pad.r,Y(cap));x.stroke();x.setLineDash([]);
+    function line(pts,col,dash,w){if(!pts.length)return;x.strokeStyle=col;x.lineWidth=w;x.setLineDash(dash||[]);x.beginPath();pts.forEach(function(p,i){var px=X(p.t),py=Y(p.v);if(i===0)x.moveTo(px,py);else{x.lineTo(px,py);}});x.stroke();x.setLineDash([]);}
+    function step(pts){var out=[];pts.forEach(function(p,i){if(i>0)out.push({t:p.t,v:pts[i-1].v});out.push(p);});return out;}
+    line(step(real),css('--real'),[5,4],1.6);
+    var s=step(sim);x.globalAlpha=1;line(s,css('--accent'),null,2.2);
+    if(s.length){var lp=s[s.length-1];x.fillStyle=css('--accent');x.beginPath();x.arc(X(lp.t),Y(lp.v),3.5,0,7);x.fill();}
+  }
+  function drawFut(pr,cap,n){var g=prep($('c-fut')),x=g.x,pad={l:58,r:14,t:10,b:24};x.clearRect(0,0,g.w,g.h);
+    var b=pr.bands,lo=Math.min(cap,b.reduce(function(a,v){return Math.min(a,v[0]);},Infinity)),hi=b.reduce(function(a,v){return Math.max(a,v[2]);},cap);var m=(hi-lo)*.06;
+    var X=function(i){return pad.l+(g.w-pad.l-pad.r)*(i/n);};var months=+$('f-h').value,labs=[];for(var k=0;k<=months;k++){if(months>6&&k%2)continue;labs.push({t:k===0?"aujourd'hui":"+"+k+" mois",x:X(n*k/months)});}
+    var Y=axes(g,lo-m,hi+m,pad,labs);
+    x.fillStyle=css('--band');x.beginPath();b.forEach(function(v,i){var px=X(i),py=Y(v[2]);if(i===0)x.moveTo(px,py);else x.lineTo(px,py);});for(var i=b.length-1;i>=0;i--)x.lineTo(X(i),Y(b[i][0]));x.closePath();x.fill();
+    x.setLineDash([3,3]);x.strokeStyle=css('--line-2');x.beginPath();x.moveTo(pad.l,Y(cap));x.lineTo(g.w-pad.r,Y(cap));x.stroke();x.setLineDash([]);
+    x.strokeStyle=css('--accent');x.lineWidth=2.2;x.beginPath();b.forEach(function(v,i){var px=X(i),py=Y(v[1]);if(i===0)x.moveTo(px,py);else x.lineTo(px,py);});x.stroke();
+    var lp=b[b.length-1];x.fillStyle=css('--accent');x.beginPath();x.arc(X(n),Y(lp[1]),3.5,0,7);x.fill();
+  }
+  var tradingDays=dates.length;
+  function realCurve(cap){var bal=D.start,pts=[{t:dates[0]+" 12:00",v:cap}],out=[];D.real.forEach(function(r){var p=r.n/bal;bal+=r.n;out.push(p);pts.push({t:r.c,v:pts[pts.length-1].v*(1+p)});});return {pts:pts,ret:out};}
+  function run(){
+    var cap=Math.max(50,+$('cap').value||1040), rk=Math.min(30,Math.max(0.5,+$('rk').value||5));
+    document.querySelectorAll('#mk .chip').forEach(function(c){c.setAttribute('aria-pressed',markets.indexOf(c.dataset.s)>=0?'true':'false');});
+    var o={dayFilter:$('o-day').checked,newsBlock:$('o-news').checked,skipNewsDay:$('o-skip').checked,closeBeforeNews:$('o-close').checked,tp1BE:$('o-be').checked,trail:$('o-trail').checked,entry:$('o-entry').value,endHour:+$('o-end').value,onlyTop:+$('o-top').value,maxPos:+$('o-max').value,markets:markets};
+    var tr=E.simulate(D,o), m=E.money(tr,cap,rk), rc=realCurve(cap);
+    var realFinal=rc.pts[rc.pts.length-1].v;
+    $('past-sub').textContent=m.n+" trades simulés · réel : "+D.real.length+" trades";
+    var K=[["Capital final",eur(m.final),pct(m.final/cap-1,true),m.final>=cap],["Trades",String(m.n),(m.n/tradingDays*5).toFixed(1).replace('.',',')+" par semaine",null],["Réussite",pct(m.win),"trades gagnants",null],["Gain moyen",fmt2.format(m.avgW)+" R","par trade gagnant",true],["Perte moyenne",fmt2.format(m.avgL)+" R","par trade perdant",false],["Plus forte baisse",pct(-m.maxDD),"depuis un plus haut",false]];
+    $('kpis').innerHTML=K.map(function(k){return '<div class="kpi"><span>'+k[0]+'</span><b class="'+(k[3]===true?'pos':k[3]===false?'neg':'')+'">'+k[1]+'</b><i>'+k[2]+'</i></div>';}).join('');
+    var exp=m.exp, diff=m.final-realFinal;
+    $('verdict').innerHTML=(m.n<15?"Trop peu de trades pour conclure ("+m.n+"). ":"")+"Espérance : <b class='mono "+(exp>=0?'pos':'neg')+"'>"+(exp>=0?'+':'')+fmt2.format(exp)+" R</b> par trade, soit "+(exp>=0?'+':'')+fmt2.format(exp*rk)+" % du compte en moyenne à chaque trade. Le réel de l'EA sur la même période, ramené à "+eur(cap)+" : "+eur(realFinal)+" ("+(diff>=0?"la simulation fait "+eur(diff)+" de plus":"la simulation fait "+eur(-diff)+" de moins")+").";
+    drawPast(m.curve.slice(1).length?[{t:dates[0]+" 12:00",v:cap}].concat(m.curve.slice(1)):[{t:dates[0]+" 12:00",v:cap}],rc.pts,cap);
+    // tables
+    var by={};tr.forEach(function(t){var b=by[t.sym]=by[t.sym]||{n:0,w:0,R:0,pl:0};b.n++;if(t.R>0)b.w++;b.R+=t.R;b.pl+=t.pl;});
+    $('t-mk').innerHTML='<thead><tr><th>Marché</th><th class="n">Trades</th><th class="n">Réussite</th><th class="n">Total R</th><th class="n">Résultat</th></tr></thead><tbody>'+Object.keys(by).sort(function(a,b){return by[b].pl-by[a].pl;}).map(function(s){var b=by[s];return '<tr><td>'+NAMES[s]+'</td><td class="n">'+b.n+'</td><td class="n">'+pct(b.w/b.n)+'</td><td class="n '+(b.R>=0?'pos':'neg')+'">'+fmt2.format(b.R)+'</td><td class="n '+(b.pl>=0?'pos':'neg')+'">'+(b.pl>=0?'+':'')+eur(b.pl)+'</td></tr>';}).join('')+'</tbody>';
+    $('t-tr').innerHTML='<thead><tr><th>Jour</th><th>Marché</th><th>Sens</th><th class="n">Entrée</th><th>Ouvert (UTC)</th><th>Sortie</th><th class="n">R</th><th class="n">Résultat</th><th class="n">Compte</th></tr></thead><tbody>'+tr.map(function(t){return '<tr><td>'+fd(t.date)+'</td><td>'+NAMES[t.sym]+'</td><td>'+(t.dir==='BUY'?'Achat':'Vente')+'</td><td class="n">'+t.entry+'</td><td class="mono">'+t.open.slice(5)+'</td><td>'+t.how+'</td><td class="n '+(t.R>=0?'pos':'neg')+'">'+fmt2.format(t.R)+'</td><td class="n '+(t.pl>=0?'pos':'neg')+'">'+(t.pl>=0?'+':'')+fmt2.format(t.pl)+'</td><td class="n">'+fmt.format(t.eq)+'</td></tr>';}).join('')+'</tbody>';
+    // futur
+    var fn=$('f-n'); if(!fn.dataset.touched){fn.value=Math.max(5,Math.round(m.n/tradingDays*21));}
+    var perMonth=Math.max(5,+fn.value||20), months=+$('f-h').value, nT=perMonth*months;
+    var Rs=$('f-src').value==='real'?rc.ret.map(function(p){return p/0.05;}):tr.map(function(t){return t.R;});
+    if(Rs.length<5){$('fk').innerHTML='<div class="kpi" style="grid-column:1/-1"><span>Projection</span><b>—</b><i>Pas assez de trades avec ces réglages</i></div>';$('probs').innerHTML='';drawFut({bands:[[cap,cap,cap],[cap,cap,cap]]},cap,1);return;}
+    var pr=E.project(Rs,cap,rk,nT,2000,7);
+    $('fk').innerHTML=[["Cas défavorable (1 sur 10)",pr.p10],["Cas médian",pr.p50],["Cas favorable (1 sur 10)",pr.p90]].map(function(k){return '<div class="kpi"><span>'+k[0]+'</span><b class="'+(k[1]>=cap?'pos':'neg')+'">'+eur(k[1])+'</b><i>'+pct(k[1]/cap-1,true)+' en '+months+' mois</i></div>';}).join('');
+    $('probs').innerHTML=[["Chance de doubler le capital",pr.pDouble,"pos"],["Risque de perdre la moitié",pr.pHalf,"neg"],["Risque d'une baisse de 30 % en route",pr.pDD30,"neg"]].map(function(k){return '<div class="prob"><span>'+k[0]+'</span><b class="'+k[2]+'">'+pct(k[1])+'</b></div>';}).join('');
+    drawFut(pr,cap,nT);
+  }
+  $('f-n').addEventListener('input',function(){this.dataset.touched='1';});
+  window.addEventListener('resize',function(){clearTimeout(window.__rt);window.__rt=setTimeout(run,120);});
+  if(window.matchMedia)window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',run);
+  apply('ea');
+})();
+</script>
