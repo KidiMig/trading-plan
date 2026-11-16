@@ -9,6 +9,11 @@
 //|    SYMBOLE;SENS;ZONE_BAS;ZONE_HAUT;SL_JOUR;TP;TP1                 |
 //|    GOLD#;SELL;4205;4219;4255;4115;4150                            |
 //|    8e colonne facultative COUP = coup du mois (v1.45)            |
+//|    ou CASSURE = entrée sur cassure d'un niveau (v1.51)           |
+//|  v1.51 : zones CASSURE -> vente : ZONE_HAUT = niveau à casser,    |
+//|    ZONE_BAS = prix le plus bas accepté ; entrée à la première     |
+//|    clôture M5 entre les deux (achat : l'inverse). Une seule       |
+//|    entrée par marché et par jour : l'autre zone est annulée.      |
 //|  v1.50 : FastMoveAlert -> réveil immédiat si le prix part contre |
 //|    une position de plus de FastMoveATR × ATR D1 en 15 minutes     |
 //|  v1.49 : ConfirmEntries -> avant chaque entrée, l'EA réveille   |
@@ -26,7 +31,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.50"
+#property version   "1.51"
 
 #include <Trade\Trade.mqh>
 
@@ -55,6 +60,7 @@ input int    PriorityZones      = 0;     // v1.47 : 0 = toutes les zones ; N = s
 input int    MaxLossesPerDay    = 2;     // Arrêt pour la journée après N pertes
 input double MinRR              = 1.5;   // Ratio gain/risque minimum à l'entrée
 input bool   DayFilter          = true;  // v1.48 : vente seulement sous l'ouverture du jour, achat seulement au-dessus
+input bool   BreakoutZones      = true;  // v1.51 : jouer les lignes CASSURE du plan (entrée sur cassure d'un niveau)
 input double MinStopATR         = 0.3;   // Stop minimum en fraction du mouvement moyen d'une journée (ATR D1)
 input double MinGainMoney       = 50;    // Gain minimum visé au TP (devise du compte), 0 = pas de minimum
 input double LockTriggerMoney   = 70;    // Verrouiller un gain à partir de (devise du compte), 0 = désactivé
@@ -117,6 +123,7 @@ struct Zone
    bool              done;
    string            status;
    bool              coup;         // v1.45 : zone « coup du mois » (8e colonne COUP)
+   bool              cassure;      // v1.51 : entrée sur cassure (8e colonne CASSURE)
    bool              reserve;      // v1.47 : zone en réserve (hors des PriorityZones premières)
    long              reqId;        // v1.49 : numéro de la demande de feu vert
    datetime          reqTime;      // v1.49 : heure de la demande
@@ -331,6 +338,9 @@ void ParsePlan(string text)
       z.done        = false;
       z.status      = "en attente de la zone";
       z.coup        = (k >= 8 && StringFind(f[7], "COUP") == 0);
+      z.cassure     = (k >= 8 && StringFind(f[7], "CASSURE") == 0);
+      if(z.cassure && !BreakoutZones)
+         continue;                  // lignes CASSURE ignorées si l'option est coupée
       z.reserve     = false;
       z.reqId       = 0;
       z.reqTime     = 0;
@@ -338,6 +348,9 @@ void ParsePlan(string text)
       z.reqCount    = 0;
       if(z.coup)
          z.status = "COUP DU MOIS : en attente de la zone";
+      if(z.cassure)
+         z.status = "CASSURE : en attente de la cassure du niveau " +
+                    DoubleToString(z.dir == -1 ? z.zhi : z.zlo, SymDigits(z.sym));
       int m = ArraySize(newZones);
       ArrayResize(newZones, m + 1);
       newZones[m] = z;
@@ -403,7 +416,7 @@ bool PlanIsToday() { return planDate != "" && planDate == TodayCayenne(); }
 string ZoneKey(const Zone &z)
   {
    return z.sym + "|" + IntegerToString(z.dir) + "|" + DoubleToString(z.zlo, 5) + "|" + DoubleToString(z.zhi, 5) + "|" +
-          DoubleToString(z.slDay, 5) + "|" + DoubleToString(z.tp, 5);
+          DoubleToString(z.slDay, 5) + "|" + DoubleToString(z.tp, 5) + (z.cassure ? "|C" : "");
   }
 
 //+------------------------------------------------------------------+
@@ -455,7 +468,10 @@ void ProcessConfirm()
          MqlRates r[];
          ArraySetAsSeries(r, true);
          if(CopyRates(zones[i].sym, EntryTF(), 0, 30, r) >= 20)
+           {
             TryEnter(zones[i], r);
+            TagBreakout(zones[i]);
+           }
         }
      }
   }
@@ -508,6 +524,13 @@ void ProcessZone(Zone &z)
    ArraySetAsSeries(r, true);
    if(CopyRates(z.sym, EntryTF(), 0, 30, r) < 20)
       return;
+
+   // v1.51 : zone CASSURE, logique à part
+   if(z.cassure)
+     {
+      ProcessBreakout(z, r);
+      return;
+     }
 
    // Entrée directe : on regarde le prix à chaque passage (toutes les minutes), sans attendre de cassure
    if(EntryMode == ENTRY_DIRECT)
@@ -588,6 +611,92 @@ void ProcessZone(Zone &z)
       if(z.touched && b.time > z.extremeTime && b.close > z.structLevel)
          TryEnter(z, r);
      }
+  }
+
+//+------------------------------------------------------------------+
+//| v1.51 : zone CASSURE                                              |
+//| Vente : ZONE_HAUT = niveau à casser (sous le prix au moment du    |
+//| plan), ZONE_BAS = prix le plus bas où l'on vend encore. Entrée à  |
+//| la première clôture M5 (ou M15) entre ZONE_BAS et ZONE_HAUT.      |
+//| Achat : ZONE_BAS = niveau à casser (au-dessus du prix), ZONE_HAUT |
+//| = prix le plus haut où l'on achète encore.                        |
+//+------------------------------------------------------------------+
+void TagBreakout(Zone &z)
+  {
+   if(z.cassure && StringFind(z.status, "CASSURE") != 0)
+      z.status = "CASSURE : " + z.status;
+  }
+
+void ProcessBreakout(Zone &z, const MqlRates &r[])
+  {
+   int    dg = SymDigits(z.sym);
+   double px = 0, hi = 0, lo = 0;
+   if(EntryMode == ENTRY_DIRECT)
+     {
+      double bid = SymbolInfoDouble(z.sym, SYMBOL_BID);
+      double ask = SymbolInfoDouble(z.sym, SYMBOL_ASK);
+      if(bid <= 0 || ask <= 0)
+         return;
+      px = (z.dir == -1) ? bid : ask;
+      hi = ask;
+      lo = bid;
+     }
+   else
+     {
+      if(r[1].time <= z.lastBar)
+         return;                    // pas de nouvelle bougie clôturée
+      z.lastBar = r[1].time;
+      px = r[1].close;
+      hi = r[1].high;
+      lo = r[1].low;
+     }
+
+   if(z.dir == -1)
+     {
+      if(hi >= z.slDay)            { z.done = true; z.status = "CASSURE : invalidée (stop journalier touché)"; return; }
+      if(lo <= z.tp && !z.touched) { z.done = true; z.status = "CASSURE : objectif atteint sans entrée"; return; }
+      if(px >= z.zhi)
+        {
+         z.status = "CASSURE : attente d'une clôture " + TfName() + " sous " + DoubleToString(z.zhi, dg);
+         return;
+        }
+      if(px < z.zlo)
+        {
+         z.status = "CASSURE : prix trop loin sous " + DoubleToString(z.zlo, dg) + ", attente d'un retour entre " +
+                    DoubleToString(z.zlo, dg) + " et " + DoubleToString(z.zhi, dg);
+         return;
+        }
+      if(!z.touched)
+        {
+         z.touched     = true;
+         z.extreme     = HighestHigh(r, 1, 6);   // sommet juste avant la cassure : base du stop
+         z.extremeTime = r[1].time;
+        }
+     }
+   else
+     {
+      if(lo <= z.slDay)            { z.done = true; z.status = "CASSURE : invalidée (stop journalier touché)"; return; }
+      if(hi >= z.tp && !z.touched) { z.done = true; z.status = "CASSURE : objectif atteint sans entrée"; return; }
+      if(px <= z.zlo)
+        {
+         z.status = "CASSURE : attente d'une clôture " + TfName() + " au-dessus de " + DoubleToString(z.zlo, dg);
+         return;
+        }
+      if(px > z.zhi)
+        {
+         z.status = "CASSURE : prix trop loin au-dessus de " + DoubleToString(z.zhi, dg) + ", attente d'un retour entre " +
+                    DoubleToString(z.zlo, dg) + " et " + DoubleToString(z.zhi, dg);
+         return;
+        }
+      if(!z.touched)
+        {
+         z.touched     = true;
+         z.extreme     = LowestLow(r, 1, 6);     // creux juste avant la cassure : base du stop
+         z.extremeTime = r[1].time;
+        }
+     }
+   TryEnter(z, r);
+   TagBreakout(z);
   }
 
 double LowestLow(const MqlRates &r[], int from, int to)
@@ -771,6 +880,17 @@ void TryEnter(Zone &z, const MqlRates &r[])
       z.status = "signal ignoré : position déjà ouverte sur ce symbole";
       return;
      }
+   // v1.51 : zone CASSURE : on n'entre que si le prix est encore entre ZONE_BAS et ZONE_HAUT
+   if(z.cassure)
+     {
+      double pNow = (z.dir == -1) ? SymbolInfoDouble(z.sym, SYMBOL_BID) : SymbolInfoDouble(z.sym, SYMBOL_ASK);
+      if(pNow < z.zlo || pNow > z.zhi)
+        {
+         z.status = "signal ignoré : prix sorti de la zone de cassure " + DoubleToString(z.zlo, SymDigits(z.sym)) +
+                    "–" + DoubleToString(z.zhi, SymDigits(z.sym));
+         return;
+        }
+     }
    // v1.48 : le marché du jour doit aller dans le sens du trade (le plan date de 9h, le marché a pu se retourner)
    if(DayFilter)
      {
@@ -899,10 +1019,11 @@ void TryEnter(Zone &z, const MqlRates &r[])
       z.reqState = 1;
       z.reqCount++;
       double riskMoney = (tickSize > 0) ? risk / tickSize * tickValue * lots : 0;
-      QueueFire(StringFormat("DEMANDE D'ENTRÉE n°%I64d : %s %s %.2f lot au prix %s, SL %s, TP %s, ratio %.2f, risque %.0f %s "
+      QueueFire(StringFormat("DEMANDE D'ENTRÉE n°%I64d : %s %s %s %.2f lot au prix %s, SL %s, TP %s, ratio %.2f, risque %.0f %s "
                              "(zone %s–%s). Réponds dans actions.csv par une ligne <id>;GO;%I64d;0;raison ou <id>;NON;%I64d;0;raison. "
                              "Sans réponse en %d min : pas d'entrée.\n",
-                             z.reqId, z.sym, z.dir == -1 ? "VENTE" : "ACHAT", lots, DoubleToString(price, dg),
+                             z.reqId, z.sym, z.dir == -1 ? "VENTE" : "ACHAT", z.cassure ? "SUR CASSURE" : "SUR REBOND",
+                             lots, DoubleToString(price, dg),
                              DoubleToString(sl, dg), DoubleToString(tp, dg), rr, riskMoney, AccountInfoString(ACCOUNT_CURRENCY),
                              DoubleToString(z.zlo, dg), DoubleToString(z.zhi, dg), z.reqId, z.reqId, ConfirmTimeoutMin));
       urgentFire = true;
@@ -930,6 +1051,13 @@ void TryEnter(Zone &z, const MqlRates &r[])
                               DoubleToString(sl, dg), DoubleToString(tp, dg), rr);
       if(lotNote != "")
          z.status += " — " + lotNote;
+      // v1.51 : une seule entrée par marché et par jour : l'autre zone du même marché est annulée
+      for(int s = 0; s < ArraySize(zones); s++)
+         if(zones[s].sym == z.sym && !zones[s].done && ZoneKey(zones[s]) != ZoneKey(z))
+           {
+            zones[s].done   = true;
+            zones[s].status = "annulée : l'autre zone de ce marché vient d'entrer";
+           }
       if(isCoup)
         {
          string g = "PE_CG_" + CoupMonth() + "_";
@@ -1662,7 +1790,8 @@ string BuildDataCsv()
         ";suivi=" + (TrailEnabled ? "H1" : "non") + ";ordres_claude=" + (ActionsEnabled ? "oui" : "non") +
         ";dernier_ordre=" + Clean(actionStatus) + ";reveil=" + Clean(routineStatus) +
         ";coup=" + (!CoupEnabled ? "désactivé" : (CoupUsedThisMonth() ? "déjà joué ce mois" : "disponible ce mois")) +
-        ";prioritaires=" + IntegerToString(PriorityZones) + ";feu_vert=" + (UseConfirm() ? "oui" : "non") + "\n";
+        ";prioritaires=" + IntegerToString(PriorityZones) + ";feu_vert=" + (UseConfirm() ? "oui" : "non") +
+        ";cassure=" + (BreakoutZones ? "oui" : "non") + "\n";
 
    s += "#ZONE;symbole;sens;zone_bas;zone_haut;sl_jour;tp;tp1;touchee;etat\n";
    for(int i = 0; i < ArraySize(zones); i++)
