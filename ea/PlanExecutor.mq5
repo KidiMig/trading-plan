@@ -10,6 +10,10 @@
 //|    GOLD#;SELL;4205;4219;4255;4115;4150                            |
 //|    8e colonne facultative COUP = coup du mois (v1.45)            |
 //|    ou CASSURE = entrée sur cassure d'un niveau (v1.51)           |
+//|  v1.52 : gain verrouillé -> si le stop idéal est trop près du    |
+//|    prix pour XM (niveau des stops), le SL est posé au plus près   |
+//|    autorisé tant qu'il garantit un gain ; échec écrit dans xm.csv |
+//|    (champ verrou=), niveau des stops ajouté aux lignes QUOTE      |
 //|  v1.51 : zones CASSURE -> vente : ZONE_HAUT = niveau à casser,    |
 //|    ZONE_BAS = prix le plus bas accepté ; entrée à la première     |
 //|    clôture M5 entre les deux (achat : l'inverse). Une seule       |
@@ -31,7 +35,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.51"
+#property version   "1.52"
 
 #include <Trade\Trade.mqh>
 
@@ -142,6 +146,7 @@ bool     pushNeeded = false;
 string   pushStatus = "";
 string   actionStatus = "";
 string   routineStatus = "";
+string   lockStatus    = "";   // v1.52 : dernier verrouillage de gain (réussi, réduit ou refusé)
 string   pendingFire   = "";
 datetime lastFire      = 0;
 int      firesToday    = 0;
@@ -1111,24 +1116,40 @@ void LockProfit(ulong tk)
       return;
    double moneyPerUnit = tickVal / tickSz * vol;          // gain en devise du compte pour 1 unité de prix
    double dist  = LockKeepMoney / moneyPerUnit;           // distance au prix d'entrée qui garantit le gain
-   double newSl;
-   if(type == POSITION_TYPE_BUY)
+   bool   buy   = (type == POSITION_TYPE_BUY);
+   long   lvl   = SymbolInfoInteger(sym, SYMBOL_TRADE_STOPS_LEVEL);
+   // v1.52 : le SL le plus proche du prix que XM accepte (niveau des stops + 2 points de sécurité)
+   double edge  = buy ? bid - minStop - 2 * point : ask + minStop + 2 * point;
+   double newSl = buy ? open + dist : open - dist;
+   bool   reduced = buy ? (newSl > edge) : (newSl < edge);
+   if(reduced)
+      newSl = edge;                                       // trop près du prix : au plus près autorisé
+   newSl = NormalizeDouble(newSl, dg);
+   // Il ne fait que se resserrer (SL déjà mieux placé, par le suivi ou par Claude : rien à faire)
+   if(sl > 0 && (buy ? newSl <= sl + point : newSl >= sl - point))
+      return;
+   // Le SL doit garantir un gain : au-delà du prix d'entrée
+   if(buy ? newSl <= open : newSl >= open)
      {
-      newSl = NormalizeDouble(open + dist, dg);
-      if(newSl <= sl + point || newSl >= bid - minStop)
-         return;
+      lockStatus = StringFormat("%s : gain de %.0f atteint mais verrouillage impossible, le niveau des stops XM (%d points) "
+                                "oblige à poser le SL au-delà du prix d'entrée", sym, profit, (int)lvl);
+      return;
+     }
+   double keep = MathAbs(newSl - open) * moneyPerUnit;
+   if(trade.PositionModify(tk, newSl, tp))
+     {
+      lockStatus = StringFormat("%s : gain de %.0f atteint, SL à %s, gain garanti +%.0f", sym, profit,
+                                DoubleToString(newSl, dg), keep);
+      if(reduced)
+         lockStatus += StringFormat(" (réduit : niveau des stops XM %d points)", (int)lvl);
+      Print(lockStatus);
+      pushNeeded = true;
      }
    else
      {
-      newSl = NormalizeDouble(open - dist, dg);
-      if((sl > 0 && newSl >= sl - point) || newSl <= ask + minStop)
-         return;
-     }
-   if(trade.PositionModify(tk, newSl, tp))
-     {
-      Print(sym, " : gain de ", DoubleToString(profit, 2), " atteint, SL à ", DoubleToString(newSl, dg),
-            " pour garantir +", DoubleToString(LockKeepMoney, 0));
-      pushNeeded = true;
+      lockStatus = StringFormat("%s : gain de %.0f atteint mais SL %s refusé par XM : %s (niveau des stops %d points)",
+                                sym, profit, DoubleToString(newSl, dg), trade.ResultRetcodeDescription(), (int)lvl);
+      Print(lockStatus);
      }
   }
 
@@ -1376,8 +1397,10 @@ void CheckEvents()
 
       // 2 bis. Gain verrouillé : Claude décide s'il faut laisser monter (TP plus loin) ou encaisser
       if(LockTriggerMoney > 0 && PositionGetDouble(POSITION_PROFIT) >= LockTriggerMoney && Once(p + "lock"))
-         msg += head + "gain de " + DoubleToString(LockTriggerMoney, 0) + " atteint, l'EA verrouille +" +
-                DoubleToString(LockKeepMoney, 0) + " : décide s'il faut laisser monter (TP plus loin) ou encaisser.\n";
+         msg += head + "gain de " + DoubleToString(LockTriggerMoney, 0) + " atteint, " +
+                (StringFind(lockStatus, sym + " :") == 0 ? "verrouillage : " + lockStatus
+                 : "l'EA essaie de verrouiller +" + DoubleToString(LockKeepMoney, 0) + " (vérifie le champ verrou= de xm.csv)") +
+                " : décide s'il faut laisser monter (TP plus loin) ou encaisser.\n";
 
       // 3 a. Mi-chemin vers le SL (v1.44) : réveil assez tôt pour couper ou resserrer
       if(risk > 0 && sl > 0 && !locked && MathAbs(price - sl) < 0.5 * risk && Once(p + "halfsl"))
@@ -1791,7 +1814,7 @@ string BuildDataCsv()
         ";dernier_ordre=" + Clean(actionStatus) + ";reveil=" + Clean(routineStatus) +
         ";coup=" + (!CoupEnabled ? "désactivé" : (CoupUsedThisMonth() ? "déjà joué ce mois" : "disponible ce mois")) +
         ";prioritaires=" + IntegerToString(PriorityZones) + ";feu_vert=" + (UseConfirm() ? "oui" : "non") +
-        ";cassure=" + (BreakoutZones ? "oui" : "non") + "\n";
+        ";cassure=" + (BreakoutZones ? "oui" : "non") + ";verrou=" + Clean(lockStatus) + "\n";
 
    s += "#ZONE;symbole;sens;zone_bas;zone_haut;sl_jour;tp;tp1;touchee;etat\n";
    for(int i = 0; i < ArraySize(zones); i++)
@@ -1844,7 +1867,7 @@ string BuildDataCsv()
 
    string syms[];
    int ns = StringSplit(DataSymbols, ',', syms);
-   s += "#QUOTE;symbole;bid;ask;spread_points;digits\n";
+   s += "#QUOTE;symbole;bid;ask;spread_points;digits;stops_level_points\n";
    for(int i = 0; i < ns; i++)
      {
       string sym = syms[i];
@@ -1854,7 +1877,8 @@ string BuildDataCsv()
          continue;
       int dg = SymDigits(sym);
       s += "QUOTE;" + sym + ";" + D(SymbolInfoDouble(sym, SYMBOL_BID), dg) + ";" + D(SymbolInfoDouble(sym, SYMBOL_ASK), dg) + ";" +
-           IntegerToString(SymbolInfoInteger(sym, SYMBOL_SPREAD)) + ";" + IntegerToString(dg) + "\n";
+           IntegerToString(SymbolInfoInteger(sym, SYMBOL_SPREAD)) + ";" + IntegerToString(dg) + ";" +
+           IntegerToString(SymbolInfoInteger(sym, SYMBOL_TRADE_STOPS_LEVEL)) + "\n";
      }
    s += "#BAR;symbole;unite;heure;open;high;low;close;volume_ticks\n";
    for(int i = 0; i < ns; i++)
