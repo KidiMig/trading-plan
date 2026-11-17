@@ -13,7 +13,8 @@
 //|  v1.52 : gain verrouillé -> si le stop idéal est trop près du    |
 //|    prix pour XM (niveau des stops), le SL est posé au plus près   |
 //|    autorisé tant qu'il garantit un gain ; échec écrit dans xm.csv |
-//|    (champ verrou=), niveau des stops ajouté aux lignes QUOTE      |
+//|    (champ verrou= : réglage chargé + dernier verrouillage),       |
+//|    niveau des stops ajouté aux lignes QUOTE                       |
 //|  v1.51 : zones CASSURE -> vente : ZONE_HAUT = niveau à casser,    |
 //|    ZONE_BAS = prix le plus bas accepté ; entrée à la première     |
 //|    clôture M5 entre les deux (achat : l'inverse). Une seule       |
@@ -1113,7 +1114,11 @@ void LockProfit(ulong tk)
    double tickVal = SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_VALUE);
    double minStop = (double)SymbolInfoInteger(sym, SYMBOL_TRADE_STOPS_LEVEL) * point;
    if(tickSz <= 0 || tickVal <= 0 || vol <= 0)
+     {
+      lockStatus = StringFormat("%s : gain de %.0f atteint mais verrouillage impossible : valeur du tick illisible (%g / %g)",
+                                sym, profit, tickVal, tickSz);
       return;
+     }
    double moneyPerUnit = tickVal / tickSz * vol;          // gain en devise du compte pour 1 unité de prix
    double dist  = LockKeepMoney / moneyPerUnit;           // distance au prix d'entrée qui garantit le gain
    bool   buy   = (type == POSITION_TYPE_BUY);
@@ -1814,7 +1819,8 @@ string BuildDataCsv()
         ";dernier_ordre=" + Clean(actionStatus) + ";reveil=" + Clean(routineStatus) +
         ";coup=" + (!CoupEnabled ? "désactivé" : (CoupUsedThisMonth() ? "déjà joué ce mois" : "disponible ce mois")) +
         ";prioritaires=" + IntegerToString(PriorityZones) + ";feu_vert=" + (UseConfirm() ? "oui" : "non") +
-        ";cassure=" + (BreakoutZones ? "oui" : "non") + ";verrou=" + Clean(lockStatus) + "\n";
+        ";cassure=" + (BreakoutZones ? "oui" : "non") + ";verrou=" + (LockTriggerMoney > 0 && LockKeepMoney > 0 ? D(LockTriggerMoney, 0) + "/" + D(LockKeepMoney, 0) : "désactivé") +
+        (lockStatus != "" ? " - " + Clean(lockStatus) : "") + "\n";
 
    s += "#ZONE;symbole;sens;zone_bas;zone_haut;sl_jour;tp;tp1;touchee;etat\n";
    for(int i = 0; i < ArraySize(zones); i++)
