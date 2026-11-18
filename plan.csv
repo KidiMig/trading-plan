@@ -16,3 +16,4 @@ GOLD#;SELL;3742;3755;3800;3645;3700;CASSURE
 SILVER#;SELL;45.2;45.54;46.65;42.85;44;CASSURE
 #note;SILVER# : la vente 518655226 (45.348) a été sortie à 12h49 UTC par un SL déplacé à la main par erreur (-2.74 EUR) : ce n'est pas une perte du scénario. Miguel demande de la remettre : zone de reprise ci-dessous, même SL TP et TP1 ; feu vert GO à donner
 SILVER#;SELL;45.1;45.54;46.65;42.85;44;CASSURE
+SILVER#;SELL;45.54;46;46.65;42.85;44;CASSURE
