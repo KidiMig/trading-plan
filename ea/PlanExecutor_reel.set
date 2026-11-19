@@ -1,27 +1,40 @@
 ; Réglages du compte réel (100 €, 10 % de risque par trade) - PlanExecutor v1.52
+; Mêmes options que le démo (feu vert de Claude, ordres de Claude, réveils, cassures, alerte mouvement brutal, coup du mois).
+; Seuls les montants changent : risque, gain minimum, verrouillage, et 2 positions maximum pour que la marge de 100 € suffise.
+; Les jetons (GitHubToken, RoutineToken) et l'adresse RoutineURL se saisissent dans MT5, jamais dans ce fichier.
 DataBranch=reel
 RiskPercent=10
 MaxPositions=2
-PriorityZones=2
+PriorityZones=0
 MaxLossesPerDay=2
 MinRR=1.5
 DayFilter=false
-BreakoutZones=false
+BreakoutZones=true
 MinStopATR=0.7
 MinGainMoney=5
-LockTriggerMoney=14
-LockKeepMoney=10
+LockTriggerMoney=10
+LockKeepMoney=7
 Paused=false
 AllowRealAccount=true
 EntryStartHour=3
 EntryEndHour=16
 FridayCloseHour=16
-NewsMinutes=30
+NewsMinutes=0
 CayenneUtcOffset=-3
 Magic=20261110
 TrailEnabled=true
 TrailStartR=0.5
 TrailBarsH1=2
-ActionsEnabled=false
-RoutineEnabled=false
-CoupEnabled=false
+ActionsEnabled=true
+ActionsURL=https://raw.githubusercontent.com/kidimig/trading-plan/main/actions_reel.csv
+RoutineEnabled=true
+RoutineMinMinutes=10
+RoutineMaxPerDay=30
+ConfirmEntries=true
+ConfirmTimeoutMin=30
+ConfirmMaxAsk=2
+FastMoveAlert=true
+FastMoveATR=0.5
+FastMoveMinutes=15
+CoupEnabled=true
+CoupRiskPercent=30
