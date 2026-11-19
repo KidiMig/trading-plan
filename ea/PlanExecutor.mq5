@@ -10,6 +10,9 @@
 //|    GOLD#;SELL;4205;4219;4255;4115;4150                            |
 //|    8e colonne facultative COUP = coup du mois (v1.45)            |
 //|    ou CASSURE = entrée sur cassure d'un niveau (v1.51)           |
+//|  v1.53 : chaque réveil de Claude commence par [RÉEL] ou [DÉMO],  |
+//|    le numéro du compte, la branche des données et le fichier     |
+//|    d'ordres (le même Claude suit les deux comptes)               |
 //|  v1.52 : gain verrouillé -> si le stop idéal est trop près du    |
 //|    prix pour XM (niveau des stops), le SL est posé au plus près   |
 //|    autorisé tant qu'il garantit un gain ; échec écrit dans xm.csv |
@@ -36,7 +39,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.52"
+#property version   "1.53"
 
 #include <Trade\Trade.mqh>
 
@@ -1495,6 +1498,25 @@ string JsonEscape(string s)
    return s;
   }
 
+//+------------------------------------------------------------------+
+//| v1.53 : étiquette du compte en tête de chaque réveil              |
+//+------------------------------------------------------------------+
+string AccountTag()
+  {
+   bool   real = (AccountInfoInteger(ACCOUNT_TRADE_MODE) == ACCOUNT_TRADE_MODE_REAL);
+   string file = ActionsURL;
+   int    pos  = -1, k = 0;
+   while((k = StringFind(ActionsURL, "/", k)) >= 0)
+     {
+      pos = k;
+      k++;
+     }
+   if(pos >= 0)
+      file = StringSubstr(ActionsURL, pos + 1);
+   return StringFormat("[%s] compte %I64d · données : xm.csv branche %s · ordres de Claude : %s",
+                       real ? "RÉEL" : "DÉMO", AccountInfoInteger(ACCOUNT_LOGIN), DataBranch, file);
+  }
+
 void SendPendingFire()
   {
    // v1.44 : le compteur et l'affichage repartent à zéro chaque jour, même sans événement
@@ -1523,7 +1545,8 @@ void SendPendingFire()
    if(GitHubToken != "")
       PushData();
 
-   string text = "Événements détectés par l'EA à " + TimeToString(CayenneNow(), TIME_DATE | TIME_MINUTES) +
+   string text = AccountTag() + "\n" +
+                 "Événements détectés par l'EA à " + TimeToString(CayenneNow(), TIME_DATE | TIME_MINUTES) +
                  " (heure de Cayenne) :\n" + pendingFire;
    string body = "{\"text\":\"" + JsonEscape(text) + "\"}";
    char   data[], result[];
