@@ -1,6 +1,6 @@
-; Réglages du compte réel (200 €) - PlanExecutor v1.52
+; Réglages du compte réel (100 €, 10 % de risque par trade) - PlanExecutor v1.52
 DataBranch=reel
-RiskPercent=5
+RiskPercent=10
 MaxPositions=2
 PriorityZones=2
 MaxLossesPerDay=2
@@ -8,7 +8,7 @@ MinRR=1.5
 DayFilter=false
 BreakoutZones=false
 MinStopATR=0.7
-MinGainMoney=10
+MinGainMoney=5
 LockTriggerMoney=14
 LockKeepMoney=10
 Paused=false
