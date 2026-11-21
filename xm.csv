@@ -1,9 +1,9 @@
 #ver;1
-#generated_utc;2026-11-21 02:58
+#generated_utc;2026-11-21 08:58
 #server_utc_offset_h;2
 #times;BAR D1 = date serveur XM, BAR H1/M15/M5, POS et DEAL = heure UTC
 ACCOUNT;15188995;XM.COM-MT5;EUR;99.94;99.94;99.94;REAL
-EA;plan=2026-11-20;entrees=vendredi soir;erreur=;risque=10.00;maxpos=2;mode=confirmation M5;suivi=H1;ordres_claude=oui;dernier_ordre=SL de GOLD# déplacé à 3540.50 (Sommets M15 descendants 3557.9 3547.1 3539.7 SL au-dessus de 3539.7 verrouille le gain avant la fermeture de 19h UTC);reveil=dernier réveil le 2026.11.20 15:14;coup=disponible ce mois;prioritaires=0;feu_vert=oui;cassure=oui;verrou=10/7
+EA;plan=2026-11-20;entrees=week-end;erreur=;risque=10.00;maxpos=2;mode=confirmation M5;suivi=H1;ordres_claude=oui;dernier_ordre=SL de GOLD# déplacé à 3540.50 (Sommets M15 descendants 3557.9 3547.1 3539.7 SL au-dessus de 3539.7 verrouille le gain avant la fermeture de 19h UTC);reveil=dernier réveil le 2026.11.20 15:14;coup=disponible ce mois;prioritaires=0;feu_vert=oui;cassure=oui;verrou=10/7
 #ZONE;symbole;sens;zone_bas;zone_haut;sl_jour;tp;tp1;touchee;etat
 ZONE;GOLD#;SELL;3610.00;3630.00;3665.00;3500.00;3520.00;0;annulée : l'autre zone de ce marché vient d'entrer
 ZONE;US500Cash#;SELL;7175.00;7195.00;7255.00;7015.00;7125.00;0;annulée : l'autre zone de ce marché vient d'entrer
