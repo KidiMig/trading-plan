@@ -1,34 +1,40 @@
-#maj;2026-11-16
+#maj;2026-11-23
 #format;date;heure_cayenne;heure_utc;pays;evenement;impact(3=fort,2=moyen,1=faible,0=repere);marches;prevu;precedent;note
-2026-11-15;20:50;2026-11-15T23:50Z;JP;PIB japonais T3 (prélim.);1;USDJPY#;+0,1 % t/t;;Date à confirmer, une croissance faible éloigne une hausse de la BoJ
-2026-11-16;10:30;2026-11-16T13:30Z;US;Indice manufacturier Empire State (nov.);1;US500Cash#,US100Cash#,EURUSD#;;;Date à confirmer
-2026-11-16;14:00;2026-11-16T17:00Z;US;Discours du président de la Fed Kevin Warsh (ouverture);2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;Le moindre mot sur une hausse en décembre fait bouger dollar et or
-2026-11-17;04:00;2026-11-17T07:00Z;UK;Marché du travail (chômage, salaires);2;GBPUSD#;chômage 4,7 %;4,7 % · salaires 3,7 %;Des salaires solides poussent la BoE (4 %) à continuer de monter
-2026-11-17;07:00;2026-11-17T10:00Z;EU;Indice ZEW allemand et zone euro (nov.);1;EURUSD#;;;Date à confirmer
-2026-11-17;10:30;2026-11-17T13:30Z;US;Ventes au détail (oct.);3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;0,0 % m/m · hors auto +0,4 %;+0,8 % · +0,9 %;La consommation américaine : un chiffre fort renforce le dollar et le scénario de hausse de la Fed
-2026-11-17;10:30;2026-11-17T13:30Z;US;Mises en chantier (oct.);1;US500Cash#,US100Cash#;1,23 M;1,221 M;Heure à confirmer
-2026-11-17;11:15;2026-11-17T14:15Z;US;Production industrielle (oct.);1;US500Cash#,US100Cash#;+0,1 %;+0,7 %;Heure à confirmer
-2026-11-17;18:30;2026-11-17T21:30Z;US;Stocks de pétrole API;1;OILCash#,BRENTCash#;;;
-2026-11-18;04:00;2026-11-18T07:00Z;UK;Inflation CPI britannique (oct.);3;GBPUSD#,EURUSD#;3,6 % sur un an;3,5 % · sous-jacent 2,8 %;Clé pour la prochaine décision de la BoE, gros mouvement possible sur la livre
-2026-11-18;12:30;2026-11-18T15:30Z;US;Stocks de pétrole EIA;2;OILCash#,BRENTCash#;;;Baisse des stocks = soutien du brut
-2026-11-18;16:00;2026-11-18T19:00Z;US;Compte rendu de la Fed (réunion des 27–28 oct.);3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;taux 3,75–4,00 % (vote 10-2);Cook et Hammack voulaient déjà monter : on y cherche le signal d'une hausse le 9 décembre (marché ~85 %)
-2026-11-19;10:30;2026-11-19T13:30Z;US;Inscriptions au chômage et indice Philly Fed (nov.);2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;200 k · Philly 19,2;200 k · 20,9;Philly Fed : heure à confirmer, surveiller les prix payés (40,1 en oct.)
-2026-11-19;12:30;2026-11-19T15:30Z;US;Stocks de gaz EIA;2;NGASCash#;;;
-2026-11-19;20:30;2026-11-19T23:30Z;JP;Inflation CPI japonaise (oct.);2;USDJPY#;~2,0 %;;Une inflation forte rapproche une hausse de la BoJ, heure à confirmer
-2026-11-20;04:00;2026-11-20T07:00Z;UK;Ventes au détail britanniques (oct.);1;GBPUSD#;0,0 % m/m;-0,4 %;
-2026-11-20;07:00;2026-11-20T10:00Z;EU;Inflation zone euro (oct., finale);1;EURUSD#;4,0 %;;Confirmation du chiffre provisoire, peu de surprise en général, heure à confirmer
-2026-11-20;12:00;2026-11-20T15:00Z;US;Confiance Michigan (nov., finale);1;US500Cash#,US100Cash#,EURUSD#;51,0;51,0;Surveiller les anticipations d'inflation
-2026-11-20;14:15;2026-11-20T17:15Z;US;Discours de Lisa Cook (Fed);1;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;Elle voulait monter les taux en octobre
-2026-11-20;16:00;2026-11-20T19:00Z;EA;Fermeture du vendredi : l'EA ferme tout;0;;;;
+2026-11-23;00:00;2026-11-23T03:00Z;JP;Japon férié (fête du Travail);1;USDJPY#;;;Tokyo fermé, yen plus calme en Asie
+2026-11-23;06:00;2026-11-23T09:00Z;EU;PMI flash zone euro (nov.);2;EURUSD#;;;Heure à confirmer, un recul de l'activité pèse sur l'euro
+2026-11-23;06:30;2026-11-23T09:30Z;UK;PMI flash britanniques (nov.);2;GBPUSD#;;;Heure à confirmer
+2026-11-23;11:45;2026-11-23T14:45Z;US;PMI flash S&P Global (nov.);2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;industrie 54,5 · services 55,6;54,9 · 56,1;Premier signal sur l'activité de novembre
+2026-11-23;18:00;2026-11-23T21:00Z;US;Discours de John Williams (Fed New York);1;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;Il plaide contre une action « spectaculaire » de la Fed
+2026-11-24;05:00;2026-11-24T08:00Z;EU;Indice Ifo allemand (nov.);1;EURUSD#;;;Heure à confirmer
+2026-11-24;12:00;2026-11-24T15:00Z;US;Confiance des consommateurs Conference Board (nov.);2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;92,1;91,7;
 2026-11-24;18:30;2026-11-24T21:30Z;US;Stocks de pétrole API;1;OILCash#,BRENTCash#;;;
-2026-11-25;10:30;2026-11-25T13:30Z;US;PIB du 3e trimestre (2e estimation) et inflation PCE (oct.);3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;;;L'inflation préférée de la Fed, juste avant la réunion du 9 décembre, tout avancé à mercredi à cause de Thanksgiving
-2026-11-25;10:30;2026-11-25T13:30Z;US;Inscriptions au chômage (avancées);2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;Avancées à mercredi à cause de Thanksgiving, à confirmer
-2026-11-25;12:30;2026-11-25T15:30Z;US;Stocks de pétrole EIA;2;OILCash#,BRENTCash#;;;Veille de jour férié : liquidité en baisse
+2026-11-25;10:30;2026-11-25T13:30Z;US;PIB du 3e trimestre (2e estimation) et inflation PCE (oct.);3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;PCE sous-jacent +0,3 % m/m (≈3,2 % a/a) · PIB 3,5 %;+0,3 % m/m (3,1 % a/a) · PIB 3,4 %;L'inflation préférée de la Fed avant le 9 décembre : un PCE fort conforte la hausse attendue (marché ~95 %), dollar en hausse, or sous pression
+2026-11-25;10:30;2026-11-25T13:30Z;US;Inscriptions au chômage (avancées);2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;201 k;203 k;Avancées à mercredi à cause de Thanksgiving
+2026-11-25;10:30;2026-11-25T13:30Z;US;Commandes de biens durables (oct.);2;US500Cash#,US100Cash#,EURUSD#,USDJPY#;+0,5 %;+1,9 %;Publiées en même temps que le PCE
+2026-11-25;12:00;2026-11-25T15:00Z;US;Ventes de logements neufs (oct.);1;US500Cash#,US100Cash#;649 k;676 k;
+2026-11-25;12:30;2026-11-25T15:30Z;US;Stocks de pétrole EIA;2;OILCash#,BRENTCash#;;;Heure à confirmer, veille de jour férié : liquidité en baisse
 2026-11-25;14:00;2026-11-25T17:00Z;US;Stocks de gaz EIA (avancés);2;NGASCash#;;;Avancés à mercredi à cause de Thanksgiving, à confirmer
+2026-11-25;16:00;2026-11-25T19:00Z;US;Livre beige de la Fed;2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;État de l'économie région par région, avant la réunion du 9 décembre
 2026-11-26;00:00;2026-11-26T03:00Z;US;Thanksgiving : marchés américains fermés;2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;;;Pas de cotation normale sur les indices américains, liquidité très faible partout
+2026-11-26;09:30;2026-11-26T12:30Z;EU;Compte rendu de la BCE (réunion d'octobre);1;EURUSD#;;;Heure à confirmer, la BCE serait sur la voie d'une hausse en décembre
+2026-11-26;20:30;2026-11-26T23:30Z;JP;Inflation de Tokyo (nov.);1;USDJPY#;;;Avant-goût de l'inflation japonaise avant la BoJ des 17–18 déc., heure à confirmer
 2026-11-27;15:00;2026-11-27T18:00Z;US;Black Friday : clôture anticipée de Wall Street (13h00 New York);1;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;;;Séance courte et peu liquide, éviter d'ouvrir de nouvelles positions
 2026-11-27;16:00;2026-11-27T19:00Z;EA;Fermeture du vendredi : l'EA ferme tout;0;;;;
-2026-11-29;00:00;2026-11-29T03:00Z;OPEP;OPEP+ : réunion des 7 pays sur la production de janvier;3;OILCash#,BRENTCash#;;;plus tard
-2026-12-04;10:30;2026-12-04T13:30Z;US;Rapport sur l'emploi (nov.) : NFP, chômage, salaires;3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;;;plus tard
-2026-12-09;16:00;2026-12-09T19:00Z;US;Fed : décision sur les taux, projections et conférence;3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;;;plus tard
+2026-11-29;00:00;2026-11-29T03:00Z;OPEP;OPEP+ : réunion des 7 pays sur la production;3;OILCash#,BRENTCash#;;pause des hausses jusqu'en mars;Date à confirmer, une surprise sur les quotas fait bouger le brut à l'ouverture
+2026-11-30;11:45;2026-11-30T14:45Z;US;PMI de Chicago (nov.);1;US500Cash#,US100Cash#;;;
+2026-12-01;12:00;2026-12-01T15:00Z;US;ISM manufacturier (nov.);3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;;;Date à confirmer (1er ou 2 déc.), surveiller les prix payés
+2026-12-01;12:00;2026-12-01T15:00Z;US;Offres d'emploi JOLTS (oct.);2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;
+2026-12-01;18:30;2026-12-01T21:30Z;US;Stocks de pétrole API;1;OILCash#,BRENTCash#;;;
+2026-12-02;07:00;2026-12-02T10:00Z;EU;Inflation zone euro (nov., provisoire);2;EURUSD#;;4,0 % (oct.);Date et heure à confirmer, clé pour la hausse attendue de la BCE en décembre
+2026-12-02;10:15;2026-12-02T13:15Z;US;Emplois privés ADP (nov.);2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;Avant-goût du NFP de vendredi
+2026-12-02;12:30;2026-12-02T15:30Z;US;Stocks de pétrole EIA;2;OILCash#,BRENTCash#;;;Baisse des stocks = soutien du brut
+2026-12-03;10:30;2026-12-03T13:30Z;US;Inscriptions au chômage;2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;
+2026-12-03;12:00;2026-12-03T15:00Z;US;ISM des services (nov.);2;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#;;;Date à confirmer (3 ou 4 déc.)
+2026-12-03;12:30;2026-12-03T15:30Z;US;Stocks de gaz EIA;2;NGASCash#;;;
+2026-12-04;10:30;2026-12-04T13:30Z;US;Rapport sur l'emploi (nov.) : NFP, chômage, salaires;3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;;;Dernier rapport emploi avant la Fed du 9 décembre, gros mouvement sur l'or et le dollar
+2026-12-04;12:00;2026-12-04T15:00Z;US;Confiance Michigan (déc., prélim.);1;US500Cash#,US100Cash#,EURUSD#;;51,5;Surveiller les anticipations d'inflation
+2026-12-04;16:00;2026-12-04T19:00Z;EA;Fermeture du vendredi : l'EA ferme tout;0;;;;
+2026-12-09;16:00;2026-12-09T19:00Z;US;Fed : décision sur les taux, projections et conférence;3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;hausse de 25 pb (FedWatch ~94–99 %);;plus tard
 2026-12-10;10:30;2026-12-10T13:30Z;US;Inflation CPI (nov.);3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;;;plus tard
+2026-12-16;10:30;2026-12-16T13:30Z;US;Ventes au détail (nov.);3;GOLD#,SILVER#,US500Cash#,US100Cash#,EURUSD#,GBPUSD#,USDJPY#,OILCash#,BRENTCash#;;;plus tard
+2026-12-18;00:00;2026-12-18T03:00Z;JP;BoJ : décision sur les taux;3;USDJPY#,GOLD#;hausse à 1,50 % (sondage Reuters);;plus tard
