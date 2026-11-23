@@ -10,6 +10,10 @@
 //|    GOLD#;SELL;4205;4219;4255;4115;4150                            |
 //|    8e colonne facultative COUP = coup du mois (v1.45)            |
 //|    ou CASSURE = entrée sur cassure d'un niveau (v1.51)           |
+//|  v1.54 : la preuve M5 d'une entrée sur rebond est plafonnée à     |
+//|    ConfirmMaxATR × ATR D1 du sommet (après une montée verticale,  |
+//|    l'EA n'attend plus le pied du saut) ; volumes à 3 décimales     |
+//|    quand le pas de volume est < 0,01 (ex. 0.001 lot)              |
 //|  v1.53 : chaque réveil de Claude commence par [RÉEL] ou [DÉMO],  |
 //|    le numéro du compte, la branche des données et le fichier     |
 //|    d'ordres (le même Claude suit les deux comptes)               |
@@ -39,7 +43,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.53"
+#property version   "1.54"
 
 #include <Trade\Trade.mqh>
 
@@ -70,6 +74,7 @@ input double MinRR              = 1.5;   // Ratio gain/risque minimum à l'entr�
 input bool   DayFilter          = true;  // v1.48 : vente seulement sous l'ouverture du jour, achat seulement au-dessus
 input bool   BreakoutZones      = true;  // v1.51 : jouer les lignes CASSURE du plan (entrée sur cassure d'un niveau)
 input double MinStopATR         = 0.3;   // Stop minimum en fraction du mouvement moyen d'une journée (ATR D1)
+input double ConfirmMaxATR      = 0.25;  // v1.54 : preuve M5 au plus à cette fraction de l'ATR D1 du sommet (0 = sans limite)
 input double MinGainMoney       = 50;    // Gain minimum visé au TP (devise du compte), 0 = pas de minimum
 input double LockTriggerMoney   = 70;    // Verrouiller un gain à partir de (devise du compte), 0 = désactivé
 input double LockKeepMoney      = 50;    // Gain verrouillé (le SL garantit au moins ce gain)
@@ -594,7 +599,7 @@ void ProcessZone(Zone &z)
            {
             z.extreme     = b.high;
             z.extremeTime = b.time;
-            z.structLevel = LowestLow(r, 2, 6);
+            z.structLevel = CapStruct(z.sym, -1, z.extreme, LowestLow(r, 2, 6));
            }
          z.touched = true;
          z.status  = "dans la zone, attente de cassure " + TfName() + " sous " + DoubleToString(z.structLevel, SymDigits(z.sym));
@@ -612,7 +617,7 @@ void ProcessZone(Zone &z)
            {
             z.extreme     = b.low;
             z.extremeTime = b.time;
-            z.structLevel = HighestHigh(r, 2, 6);
+            z.structLevel = CapStruct(z.sym, 1, z.extreme, HighestHigh(r, 2, 6));
            }
          z.touched = true;
          z.status  = "dans la zone, attente de cassure " + TfName() + " au-dessus de " + DoubleToString(z.structLevel, SymDigits(z.sym));
@@ -706,6 +711,45 @@ void ProcessBreakout(Zone &z, const MqlRates &r[])
      }
    TryEnter(z, r);
    TagBreakout(z);
+  }
+
+//+------------------------------------------------------------------+
+//| v1.54 : ATR D1 d'un symbole (même calcul que AtrM15)              |
+//+------------------------------------------------------------------+
+double AtrD1(string sym)
+  {
+   MqlRates d[];
+   ArraySetAsSeries(d, true);
+   if(CopyRates(sym, PERIOD_D1, 0, 16, d) < 16)
+      return 0;
+   return AtrM15(d, 14);
+  }
+
+//+------------------------------------------------------------------+
+//| v1.54 : volume lisible (3 décimales si le pas de volume < 0,01)   |
+//+------------------------------------------------------------------+
+string LotStr(string sym, double lots)
+  {
+   double step = (sym == "") ? 0.01 : SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP);
+   return DoubleToString(lots, (step > 0 && step < 0.01) ? 3 : 2);
+  }
+
+//+------------------------------------------------------------------+
+//| v1.54 : preuve plafonnée à ConfirmMaxATR × ATR D1 du sommet       |
+//+------------------------------------------------------------------+
+double CapStruct(string sym, int dir, double extreme, double level)
+  {
+   if(ConfirmMaxATR <= 0)
+      return level;
+   double cap = ConfirmMaxATR * AtrD1(sym);
+   if(cap <= 0)
+      return level;
+   int dg = SymDigits(sym);
+   if(dir == -1 && extreme - level > cap)
+      return NormalizeDouble(extreme - cap, dg);
+   if(dir == 1 && level - extreme > cap)
+      return NormalizeDouble(extreme + cap, dg);
+   return level;
   }
 
 double LowestLow(const MqlRates &r[], int from, int to)
@@ -861,7 +905,7 @@ double LotsForRisk(string sym, double slDistance, int dir, double riskPct = -1, 
             lotNote = "marge insuffisante même pour le lot minimum";
             return 0;
            }
-         lotNote = StringFormat("volume réduit de %.2f à %.2f lot (marge du compte)", lots, maxLots);
+         lotNote = "volume réduit de " + LotStr(sym, lots) + " à " + LotStr(sym, maxLots) + " lot (marge du compte)";
          lots = maxLots;
         }
      }
@@ -1028,11 +1072,11 @@ void TryEnter(Zone &z, const MqlRates &r[])
       z.reqState = 1;
       z.reqCount++;
       double riskMoney = (tickSize > 0) ? risk / tickSize * tickValue * lots : 0;
-      QueueFire(StringFormat("DEMANDE D'ENTRÉE n°%I64d : %s %s %s %.2f lot au prix %s, SL %s, TP %s, ratio %.2f, risque %.0f %s "
-                             "(zone %s–%s). Réponds dans actions.csv par une ligne <id>;GO;%I64d;0;raison ou <id>;NON;%I64d;0;raison. "
+      QueueFire(StringFormat("DEMANDE D'ENTRÉE n°%I64d : %s %s %s %s lot au prix %s, SL %s, TP %s, ratio %.2f, risque %.0f %s "
+                             "(zone %s–%s). Réponds dans " + ActionsFileName() + " par une ligne <id>;GO;%I64d;0;raison ou <id>;NON;%I64d;0;raison. "
                              "Sans réponse en %d min : pas d'entrée.\n",
                              z.reqId, z.sym, z.dir == -1 ? "VENTE" : "ACHAT", z.cassure ? "SUR CASSURE" : "SUR REBOND",
-                             lots, DoubleToString(price, dg),
+                             LotStr(z.sym, lots), DoubleToString(price, dg),
                              DoubleToString(sl, dg), DoubleToString(tp, dg), rr, riskMoney, AccountInfoString(ACCOUNT_CURRENCY),
                              DoubleToString(z.zlo, dg), DoubleToString(z.zhi, dg), z.reqId, z.reqId, ConfirmTimeoutMin));
       urgentFire = true;
@@ -1054,8 +1098,8 @@ void TryEnter(Zone &z, const MqlRates &r[])
       z.reqState = 0;
       // Mémorise le risque initial (distance entrée → SL) pour la sortie quand l'élan s'essouffle
       GlobalVariableSet("PE_R_" + IntegerToString((long)trade.ResultOrder()), MathAbs(trade.ResultPrice() - sl));
-      z.status = StringFormat("ENTRÉE %s %.2f lot à %s, SL %s, TP %s (ratio %.2f)",
-                              z.dir == -1 ? "vente" : "achat", lots,
+      z.status = StringFormat("ENTRÉE %s %s lot à %s, SL %s, TP %s (ratio %.2f)",
+                              z.dir == -1 ? "vente" : "achat", LotStr(z.sym, lots),
                               DoubleToString(trade.ResultPrice(), dg),
                               DoubleToString(sl, dg), DoubleToString(tp, dg), rr);
       if(lotNote != "")
@@ -1501,9 +1545,8 @@ string JsonEscape(string s)
 //+------------------------------------------------------------------+
 //| v1.53 : étiquette du compte en tête de chaque réveil              |
 //+------------------------------------------------------------------+
-string AccountTag()
+string ActionsFileName()
   {
-   bool   real = (AccountInfoInteger(ACCOUNT_TRADE_MODE) == ACCOUNT_TRADE_MODE_REAL);
    string file = ActionsURL;
    int    pos  = -1, k = 0;
    while((k = StringFind(ActionsURL, "/", k)) >= 0)
@@ -1513,6 +1556,13 @@ string AccountTag()
      }
    if(pos >= 0)
       file = StringSubstr(ActionsURL, pos + 1);
+   return file;
+  }
+
+string AccountTag()
+  {
+   bool   real = (AccountInfoInteger(ACCOUNT_TRADE_MODE) == ACCOUNT_TRADE_MODE_REAL);
+   string file = ActionsFileName();
    return StringFormat("[%s] compte %I64d · données : xm.csv branche %s · ordres de Claude : %s",
                        real ? "RÉEL" : "DÉMO", AccountInfoInteger(ACCOUNT_LOGIN), DataBranch, file);
   }
@@ -1864,7 +1914,7 @@ string BuildDataCsv()
       int dg = SymDigits(sym);
       s += "POS;" + IntegerToString((long)tk) + ";" + sym + ";" +
            (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY ? "BUY" : "SELL") + ";" +
-           D(PositionGetDouble(POSITION_VOLUME), 2) + ";" + TimeStr((datetime)PositionGetInteger(POSITION_TIME) - off) + ";" +
+           LotStr(sym, PositionGetDouble(POSITION_VOLUME)) + ";" + TimeStr((datetime)PositionGetInteger(POSITION_TIME) - off) + ";" +
            D(PositionGetDouble(POSITION_PRICE_OPEN), dg) + ";" + D(PositionGetDouble(POSITION_SL), dg) + ";" +
            D(PositionGetDouble(POSITION_TP), dg) + ";" + D(PositionGetDouble(POSITION_PRICE_CURRENT), dg) + ";" +
            D(PositionGetDouble(POSITION_PROFIT), 2) + ";" + D(PositionGetDouble(POSITION_SWAP), 2) + ";" +
@@ -1886,7 +1936,7 @@ string BuildDataCsv()
          StringReplace(typ, "DEAL_TYPE_", "");
          StringReplace(ent, "DEAL_ENTRY_", "");
          s += "DEAL;" + IntegerToString((long)tk) + ";" + TimeStr((datetime)HistoryDealGetInteger(tk, DEAL_TIME) - off) + ";" +
-              sym + ";" + typ + ";" + ent + ";" + D(HistoryDealGetDouble(tk, DEAL_VOLUME), 2) + ";" +
+              sym + ";" + typ + ";" + ent + ";" + LotStr(sym, HistoryDealGetDouble(tk, DEAL_VOLUME)) + ";" +
               D(HistoryDealGetDouble(tk, DEAL_PRICE), dg) + ";" + D(HistoryDealGetDouble(tk, DEAL_PROFIT), 2) + ";" +
               D(HistoryDealGetDouble(tk, DEAL_SWAP), 2) + ";" + D(HistoryDealGetDouble(tk, DEAL_COMMISSION), 2) + ";" +
               IntegerToString(HistoryDealGetInteger(tk, DEAL_MAGIC)) + ";" +
