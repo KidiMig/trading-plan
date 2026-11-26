@@ -1,0 +1,21 @@
+; PlanExecutorM1 M1-1.00 : OBSERVATION, ne trade pas. À poser sur un graphique du MT5 du démo, à côté du PlanExecutor M5.
+; Écrit m1.csv sur la branche m1 du dépôt. Le jeton GitHubToken (le même que celui du démo) se saisit dans MT5, jamais dans ce fichier.
+GitHubRepo=kidimig/trading-plan
+DataBranch=m1
+PushMinutes=15
+PlanURL=https://raw.githubusercontent.com/kidimig/trading-plan/main/plan.csv
+PollMinutes=5
+CayenneUtcOffset=-3
+EntryStartHour=3
+EntryEndHour=16
+FridayCloseHour=16
+BreakoutZones=true
+MinRR=1.5
+MinStopATR=0.7
+ConfirmMaxATR=0.25
+StructBars=5
+WickMinRatio=0.5
+RequireM5Dir=true
+SpreadMaxPct=20
+MaxDays=5
+KeepDays=21
