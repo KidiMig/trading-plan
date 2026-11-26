@@ -10,6 +10,11 @@
 //|    GOLD#;SELL;4205;4219;4255;4115;4150                            |
 //|    8e colonne facultative COUP = coup du mois (v1.45)            |
 //|    ou CASSURE = entrée sur cassure d'un niveau (v1.51)           |
+//|  v1.55 : verrou du gain en fois le risque du trade (LockTriggerR,|
+//|    LockKeepR) : il s'adapte à chaque trade et au solde ; version |
+//|    et réglages clés écrits dans xm.csv (champs version=,        |
+//|    reglages=) ; chiffres du calcul dans le refus « lot minimum » |
+//|    et zone gardée si la valeur du tick est illisible            |
 //|  v1.54 : la preuve M5 d'une entrée sur rebond est plafonnée à     |
 //|    ConfirmMaxATR × ATR D1 du sommet (après une montée verticale,  |
 //|    l'EA n'attend plus le pied du saut) ; volumes à 3 décimales     |
@@ -43,7 +48,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.54"
+#property version   "1.55"
 
 #include <Trade\Trade.mqh>
 
@@ -76,8 +81,10 @@ input bool   BreakoutZones      = true;  // v1.51 : jouer les lignes CASSURE du 
 input double MinStopATR         = 0.3;   // Stop minimum en fraction du mouvement moyen d'une journée (ATR D1)
 input double ConfirmMaxATR      = 0.25;  // v1.54 : preuve M5 au plus à cette fraction de l'ATR D1 du sommet (0 = sans limite)
 input double MinGainMoney       = 50;    // Gain minimum visé au TP (devise du compte), 0 = pas de minimum
-input double LockTriggerMoney   = 70;    // Verrouiller un gain à partir de (devise du compte), 0 = désactivé
-input double LockKeepMoney      = 50;    // Gain verrouillé (le SL garantit au moins ce gain)
+input double LockTriggerR       = 1.0;   // v1.55 : verrouiller quand le gain atteint X fois le risque du trade (0 = montant fixe ci-dessous)
+input double LockKeepR          = 0.7;   // v1.55 : gain garanti, en fois le risque du trade
+input double LockTriggerMoney   = 70;    // Verrou en montant fixe, à partir de (devise du compte) : seulement si le verrou en fois le risque est à 0
+input double LockKeepMoney      = 50;    // Verrou en montant fixe : gain garanti (devise du compte)
 input bool   Paused             = false; // Pause : aucune nouvelle entrée
 input bool   AllowRealAccount   = false; // Autoriser le trading sur un compte réel
 input int    PollMinutes        = 5;     // Relecture du plan (minutes)
@@ -855,6 +862,8 @@ int LossesToday()
 //| Taille de position selon le risque                               |
 //+------------------------------------------------------------------+
 string lotNote = "";   // explique une réduction du volume (marge insuffisante)
+string lotDiag = "";   // v1.55 : chiffres du dernier refus « lot minimum »
+const string EA_VERSION = "1.55";
 
 // Coup du mois : clé du mois en cours (heure de Cayenne), ex. 202611
 string CoupMonth()
@@ -874,8 +883,15 @@ double LotsForRisk(string sym, double slDistance, int dir, double riskPct = -1, 
    double vMin      = SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN);
    double vMax      = SymbolInfoDouble(sym, SYMBOL_VOLUME_MAX);
    double vStep     = SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP);
+   lotNote = "";
+   lotDiag = "";
    if(tickSize <= 0 || tickValue <= 0 || vStep <= 0 || slDistance <= 0)
+     {
+      // v1.55 : donnée XM illisible (souvent passagère, pendant une annonce) : la zone reste active
+      lotNote = StringFormat("données XM illisibles pour le calcul du lot (tick %g / valeur %g / pas %g / stop %g)",
+                             tickSize, tickValue, vStep, slDistance);
       return 0;
+     }
    double riskMoney   = AccountInfoDouble(ACCOUNT_BALANCE) * riskPct / 100.0;
    double lossPerLot  = slDistance / tickSize * tickValue;
    double lots        = MathFloor(riskMoney / lossPerLot / vStep) * vStep;
@@ -883,14 +899,18 @@ double LotsForRisk(string sym, double slDistance, int dir, double riskPct = -1, 
      {
       // Le lot minimum dépasse le risque voulu : on refuse s'il le dépasse de plus de 50 %
       if(vMin * lossPerLot > riskMoney * 1.5)
+        {
+         lotDiag = "lot minimum " + LotStr(sym, vMin) + " = " + DoubleToString(vMin * lossPerLot, 2) +
+                   " de risque pour " + DoubleToString(riskMoney, 2) + " autorisés, " +
+                   DoubleToString(riskMoney * 1.5, 2) + " avec la tolérance de 50 %";
          return 0;
+        }
       lots = vMin;
      }
    lots = MathMin(lots, vMax);
 
    // Plafond de marge : la position ne doit pas prendre plus que sa part de la marge libre
    // (marge libre × 90 % ÷ nombre de places encore libres), sinon le broker refuse (« not enough money »)
-   lotNote = "";
    double price = (dir == 1) ? SymbolInfoDouble(sym, SYMBOL_ASK) : SymbolInfoDouble(sym, SYMBOL_BID);
    double marginPerLot = 0;
    if(OrderCalcMargin(dir == 1 ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, sym, 1.0, price, marginPerLot) && marginPerLot > 0)
@@ -1037,7 +1057,7 @@ void TryEnter(Zone &z, const MqlRates &r[])
          z.status = "signal ignoré : " + lotNote;   // la marge peut se libérer plus tard : la zone reste active
          return;
         }
-      z.status = "signal ignoré : le lot minimum dépasse le risque autorisé";
+      z.status = "signal ignoré : le lot minimum dépasse le risque autorisé" + (lotDiag != "" ? " (" + lotDiag + ")" : "");
       z.done = true;
       return;
      }
@@ -1136,16 +1156,68 @@ void TryEnter(Zone &z, const MqlRates &r[])
   }
 
 //+------------------------------------------------------------------+
-//| Gain verrouillé : quand le gain latent atteint LockTriggerMoney,  |
-//| le SL passe au prix qui garantit LockKeepMoney. Il ne fait que se |
-//| resserrer ; le suivi H1 ou Claude peuvent ensuite le monter plus. |
+//| v1.55 : seuils du verrou pour une position, en devise du compte.  |
+//| En fois le risque du trade (LockTriggerR / LockKeepR) si le risque|
+//| initial est connu, sinon les montants fixes (LockTriggerMoney /   |
+//| LockKeepMoney). Laisse la position sélectionnée.                  |
+//+------------------------------------------------------------------+
+bool LockLevels(ulong tk, double &trig, double &keep)
+  {
+   trig = 0;
+   keep = 0;
+   if(!PositionSelectByTicket(tk))
+      return false;
+   if(LockTriggerR > 0 && LockKeepR > 0 && LockKeepR < LockTriggerR)
+     {
+      string sym     = PositionGetString(POSITION_SYMBOL);
+      bool   buy     = (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY);
+      double open    = PositionGetDouble(POSITION_PRICE_OPEN);
+      double sl      = PositionGetDouble(POSITION_SL);
+      double vol     = PositionGetDouble(POSITION_VOLUME);
+      double tickSz  = SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_SIZE);
+      double tickVal = SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_VALUE);
+      string gv      = "PE_R_" + IntegerToString((long)tk);
+      double risk    = GlobalVariableCheck(gv) ? GlobalVariableGet(gv) : 0;
+      if(risk <= 0 && sl > 0 && (buy ? sl < open : sl > open))
+         risk = MathAbs(open - sl);
+      if(risk > 0 && tickSz > 0 && tickVal > 0 && vol > 0)
+        {
+         double riskMoney = risk / tickSz * tickVal * vol;
+         trig = LockTriggerR * riskMoney;
+         keep = LockKeepR * riskMoney;
+         return true;
+        }
+     }
+   if(LockTriggerMoney > 0 && LockKeepMoney > 0 && LockKeepMoney < LockTriggerMoney)
+     {
+      trig = LockTriggerMoney;
+      keep = LockKeepMoney;
+      return true;
+     }
+   return false;
+  }
+
+string LockSetting()
+  {
+   string money = (LockTriggerMoney > 0 && LockKeepMoney > 0) ? D(LockTriggerMoney, 0) + "/" + D(LockKeepMoney, 0) : "";
+   if(LockTriggerR > 0 && LockKeepR > 0)
+      return D(LockTriggerR, 2) + "R/" + D(LockKeepR, 2) + "R" + (money != "" ? " (sinon " + money + ")" : "");
+   return money != "" ? money : "désactivé";
+  }
+
+//+------------------------------------------------------------------+
+//| Gain verrouillé : quand le gain latent atteint le seuil du verrou |
+//| (LockLevels), le SL passe au prix qui garantit le gain prévu. Il  |
+//| ne fait que se resserrer ; le suivi H1 ou Claude peuvent ensuite  |
+//| le monter plus.                                                   |
 //+------------------------------------------------------------------+
 void LockProfit(ulong tk)
   {
-   if(LockTriggerMoney <= 0 || LockKeepMoney <= 0 || !PositionSelectByTicket(tk))
+   double trig, keepMoney;
+   if(!LockLevels(tk, trig, keepMoney))
       return;
    double profit = PositionGetDouble(POSITION_PROFIT);
-   if(profit < LockTriggerMoney)
+   if(profit < trig)
       return;
    string sym     = PositionGetString(POSITION_SYMBOL);
    long   type    = PositionGetInteger(POSITION_TYPE);
@@ -1167,7 +1239,7 @@ void LockProfit(ulong tk)
       return;
      }
    double moneyPerUnit = tickVal / tickSz * vol;          // gain en devise du compte pour 1 unité de prix
-   double dist  = LockKeepMoney / moneyPerUnit;           // distance au prix d'entrée qui garantit le gain
+   double dist  = keepMoney / moneyPerUnit;               // distance au prix d'entrée qui garantit le gain
    bool   buy   = (type == POSITION_TYPE_BUY);
    long   lvl   = SymbolInfoInteger(sym, SYMBOL_TRADE_STOPS_LEVEL);
    // v1.52 : le SL le plus proche du prix que XM accepte (niveau des stops + 2 points de sécurité)
@@ -1190,8 +1262,8 @@ void LockProfit(ulong tk)
    double keep = MathAbs(newSl - open) * moneyPerUnit;
    if(trade.PositionModify(tk, newSl, tp))
      {
-      lockStatus = StringFormat("%s : gain de %.0f atteint, SL à %s, gain garanti +%.0f", sym, profit,
-                                DoubleToString(newSl, dg), keep);
+      lockStatus = StringFormat("%s : gain de %.0f atteint (seuil %.0f), SL à %s, gain garanti +%.0f", sym, profit,
+                                trig, DoubleToString(newSl, dg), keep);
       if(reduced)
          lockStatus += StringFormat(" (réduit : niveau des stops XM %d points)", (int)lvl);
       Print(lockStatus);
@@ -1448,10 +1520,11 @@ void CheckEvents()
         }
 
       // 2 bis. Gain verrouillé : Claude décide s'il faut laisser monter (TP plus loin) ou encaisser
-      if(LockTriggerMoney > 0 && PositionGetDouble(POSITION_PROFIT) >= LockTriggerMoney && Once(p + "lock"))
-         msg += head + "gain de " + DoubleToString(LockTriggerMoney, 0) + " atteint, " +
+      double lkT = 0, lkK = 0;
+      if(LockLevels(tk, lkT, lkK) && PositionGetDouble(POSITION_PROFIT) >= lkT && Once(p + "lock"))
+         msg += head + "gain de " + DoubleToString(lkT, 0) + " atteint, " +
                 (StringFind(lockStatus, sym + " :") == 0 ? "verrouillage : " + lockStatus
-                 : "l'EA essaie de verrouiller +" + DoubleToString(LockKeepMoney, 0) + " (vérifie le champ verrou= de xm.csv)") +
+                 : "l'EA essaie de verrouiller +" + DoubleToString(lkK, 0) + " (vérifie le champ verrou= de xm.csv)") +
                 " : décide s'il faut laisser monter (TP plus loin) ou encaisser.\n";
 
       // 3 a. Mi-chemin vers le SL (v1.44) : réveil assez tôt pour couper ou resserrer
@@ -1665,7 +1738,7 @@ void ManagePositions()
       if(StringFind(PositionGetString(POSITION_COMMENT), "COUP:") == 0)
          continue;
 
-      // Gain verrouillé : dès +LockTriggerMoney, le SL garantit au moins +LockKeepMoney
+      // Gain verrouillé : dès le seuil du verrou (v1.55 : en fois le risque), le SL garantit le gain prévu
       LockProfit(tk);
       // Sortie quand l'élan s'essouffle : SL derrière les dernières bougies H1
       TrailPosition(tk);
@@ -1838,6 +1911,26 @@ void ManageCoup(const string month)
 //+------------------------------------------------------------------+
 string D(double v, int dg) { return DoubleToString(v, dg); }
 
+// v1.55 : réglages clés, écrits dans xm.csv pour vérifier qu'ils sont bien chargés
+string SettingsStr()
+  {
+   return "risque " + D(RiskPercent, 1) + "% / positions " + IntegerToString(MaxPositions) +
+          " / pertes max par jour " + IntegerToString(MaxLossesPerDay) +
+          " / ratio min " + D(MinRR, 2) + " / gain min " + D(MinGainMoney, 0) +
+          " / filtre du jour " + (DayFilter ? "oui" : "non") +
+          " / stop min " + D(MinStopATR, 2) + " ATR / preuve max " + D(ConfirmMaxATR, 2) + " ATR" +
+          " / pause annonces " + IntegerToString(NewsMinutes) + " min" +
+          " / entrées " + IntegerToString(EntryStartHour) + "h-" + IntegerToString(EntryEndHour) + "h" +
+          " / vendredi " + IntegerToString(FridayCloseHour) + "h" +
+          " / verrou " + LockSetting() +
+          " / suivi " + (TrailEnabled ? D(TrailStartR, 2) + "R " + IntegerToString(TrailBarsH1) + " H1" : "non") +
+          " / cassures " + (BreakoutZones ? "oui" : "non") +
+          " / feu vert " + (ConfirmEntries ? "oui" : "non") +
+          " / coup " + (CoupEnabled ? D(CoupRiskPercent, 0) + "%" : "non") +
+          " / pause " + (Paused ? "oui" : "non") +
+          " / compte réel autorisé " + (AllowRealAccount ? "oui" : "non");
+  }
+
 string Clean(string s)
   {
    StringReplace(s, ";", ",");
@@ -1892,8 +1985,9 @@ string BuildDataCsv()
         ";dernier_ordre=" + Clean(actionStatus) + ";reveil=" + Clean(routineStatus) +
         ";coup=" + (!CoupEnabled ? "désactivé" : (CoupUsedThisMonth() ? "déjà joué ce mois" : "disponible ce mois")) +
         ";prioritaires=" + IntegerToString(PriorityZones) + ";feu_vert=" + (UseConfirm() ? "oui" : "non") +
-        ";cassure=" + (BreakoutZones ? "oui" : "non") + ";verrou=" + (LockTriggerMoney > 0 && LockKeepMoney > 0 ? D(LockTriggerMoney, 0) + "/" + D(LockKeepMoney, 0) : "désactivé") +
-        (lockStatus != "" ? " - " + Clean(lockStatus) : "") + "\n";
+        ";cassure=" + (BreakoutZones ? "oui" : "non") + ";verrou=" + LockSetting() +
+        (lockStatus != "" ? " - " + Clean(lockStatus) : "") +
+        ";version=" + EA_VERSION + ";reglages=" + Clean(SettingsStr()) + "\n";
 
    s += "#ZONE;symbole;sens;zone_bas;zone_haut;sl_jour;tp;tp1;touchee;etat\n";
    for(int i = 0; i < ArraySize(zones); i++)

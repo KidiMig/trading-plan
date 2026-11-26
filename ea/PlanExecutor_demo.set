@@ -1,4 +1,4 @@
-; Réglages du compte DÉMO XM 27743317 (test agressif à 20 %) - PlanExecutor v1.54
+; Réglages du compte DÉMO XM 27743317 (test agressif à 20 %) - PlanExecutor v1.55
 ; Les jetons (GitHubToken, RoutineToken) et l'adresse RoutineURL se saisissent dans MT5, jamais dans ce fichier.
 DataBranch=live
 RiskPercent=20
@@ -11,6 +11,9 @@ BreakoutZones=true
 MinStopATR=0.7
 ConfirmMaxATR=0.25
 MinGainMoney=50
+; v1.55 : verrou à 1 fois le risque du trade (0,7 fois garanti) ; les montants fixes ne servent que si le risque du trade est inconnu.
+LockTriggerR=1.0
+LockKeepR=0.7
 LockTriggerMoney=280
 LockKeepMoney=200
 Paused=false
