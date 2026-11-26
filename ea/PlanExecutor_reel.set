@@ -1,4 +1,4 @@
-; Réglages du compte réel (100 €, 10 % de risque par trade) - PlanExecutor v1.55
+; Réglages du compte réel (100 €, 10 % de risque par trade) - PlanExecutor v1.56
 ; Mêmes options que le démo (feu vert de Claude, ordres de Claude, réveils, cassures, alerte mouvement brutal, coup du mois).
 ; Seuls les montants changent : risque, gain minimum, verrouillage, et 2 positions maximum pour que la marge de 100 € suffise.
 ; Les jetons (GitHubToken, RoutineToken) et l'adresse RoutineURL se saisissent dans MT5, jamais dans ce fichier.
@@ -37,6 +37,10 @@ RoutineMaxPerDay=30
 ConfirmEntries=true
 ConfirmTimeoutMin=30
 ConfirmMaxAsk=2
+; v1.56 : feu vert anticipé, demandé dès que le prix touche la zone ; GO = entrée à la seconde du signal pendant 30 min.
+ArmEnabled=true
+ArmValidMin=30
+ArmBreakoutATR=0.15
 FastMoveAlert=true
 FastMoveATR=0.5
 FastMoveMinutes=15

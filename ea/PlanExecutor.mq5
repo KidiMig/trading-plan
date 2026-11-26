@@ -10,6 +10,10 @@
 //|    GOLD#;SELL;4205;4219;4255;4115;4150                            |
 //|    8e colonne facultative COUP = coup du mois (v1.45)            |
 //|    ou CASSURE = entrée sur cassure d'un niveau (v1.51)           |
+//|  v1.56 : feu vert anticipé -> l'EA demande le GO dès que le prix |
+//|    touche la zone (ou approche du niveau d'une cassure) ; GO =   |
+//|    entrée à la seconde du signal pendant ArmValidMin minutes    |
+//|    (ratio, lot, gain minimum toujours vérifiés au signal)       |
 //|  v1.55 : verrou du gain en fois le risque du trade (LockTriggerR,|
 //|    LockKeepR) : il s'adapte à chaque trade et au solde ; version |
 //|    et réglages clés écrits dans xm.csv (champs version=,        |
@@ -48,7 +52,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.55"
+#property version   "1.56"
 
 #include <Trade\Trade.mqh>
 
@@ -115,6 +119,11 @@ input bool   ConfirmEntries     = true;  // Avant d'entrer, demander GO ou NON �
 input int    ConfirmTimeoutMin  = 30;    // Sans réponse après X minutes : demande abandonnée, pas d'entrée
 input int    ConfirmMaxAsk      = 2;     // Demandes maximum par zone et par jour
 
+input group "Feu vert anticipé (v1.56)"
+input bool   ArmEnabled         = true;  // Demander le feu vert dès que le prix touche la zone : l'EA entre ensuite à la seconde du signal
+input int    ArmValidMin        = 30;    // Validité du feu vert anticipé après le GO de Claude (minutes)
+input double ArmBreakoutATR     = 0.15;  // Cassure : demander le feu vert quand le prix est à moins de X fois l'ATR D1 du niveau
+
 input group "Alerte mouvement brutal (v1.50)"
 input bool   FastMoveAlert      = true;  // Réveiller Claude tout de suite si le prix part fort contre une position
 input double FastMoveATR        = 0.5;   // Seuil : fraction du mouvement moyen d'une journée (ATR D1)
@@ -149,6 +158,11 @@ struct Zone
    datetime          reqTime;      // v1.49 : heure de la demande
    int               reqState;     // v1.49 : 0 aucune, 1 en attente, 2 GO reçu, 3 NON reçu
    int               reqCount;     // v1.49 : demandes faites aujourd'hui pour cette zone
+   long              armId;        // v1.56 : numéro de la demande de feu vert anticipé
+   datetime          armTime;      // v1.56 : heure de la demande
+   datetime          armUntil;     // v1.56 : fin de validité du GO anticipé
+   int               armState;     // v1.56 : 0 aucune, 1 demandée, 2 armée (GO reçu)
+   int               armCount;     // v1.56 : demandes anticipées faites aujourd'hui pour cette zone
   };
 
 Zone     zones[];
@@ -367,6 +381,11 @@ void ParsePlan(string text)
       z.reqTime     = 0;
       z.reqState    = 0;
       z.reqCount    = 0;
+      z.armId       = 0;
+      z.armTime     = 0;
+      z.armUntil    = 0;
+      z.armState    = 0;
+      z.armCount    = 0;
       if(z.coup)
          z.status = "COUP DU MOIS : en attente de la zone";
       if(z.cassure)
@@ -463,9 +482,56 @@ bool UseConfirm()
 bool WaitingConfirm()
   {
    for(int i = 0; i < ArraySize(zones); i++)
-      if(!zones[i].done && (zones[i].reqState == 1 || zones[i].reqState == 2))
+      if(!zones[i].done && (zones[i].reqState == 1 || zones[i].reqState == 2 || zones[i].armState == 1))
          return true;
    return false;
+  }
+
+//+------------------------------------------------------------------+
+//| v1.56 : feu vert anticipé                                         |
+//| Dès que le prix touche la zone (rebond) ou approche du niveau     |
+//| (cassure), l'EA demande le GO à Claude. GO = l'EA entre à la      |
+//| seconde du signal pendant ArmValidMin minutes, sans redemander.   |
+//| NON = zone refusée pour la journée. Sans réponse : l'EA demande   |
+//| au moment du signal, comme avant.                                 |
+//+------------------------------------------------------------------+
+void RequestArm(Zone &z, double px, const string where)
+  {
+   if(!ArmEnabled || !UseConfirm() || EntryMode == ENTRY_DIRECT || z.done || z.reserve)
+      return;
+   if(z.armState != 0 || z.armCount >= 1 || z.reqState != 0)
+      return;
+   if(BlockReason() != "")
+      return;                           // hors horaires, positions pleines, pertes du jour... : inutile de demander
+   if(z.coup && CoupEnabled && !CoupUsedThisMonth())
+      return;                           // le coup du mois garde sa demande au moment du signal
+   int dg = SymDigits(z.sym);
+   reqSeq++;
+   z.armId    = (long)TimeGMT() * 10 + (reqSeq % 10);
+   z.armTime  = TimeLocal();
+   z.armState = 1;
+   z.armCount++;
+   QueueFire(StringFormat("FEU VERT ANTICIPÉ n°%I64d : %s %s %s, %s (prix %s ; zone %s–%s, SL du plan %s, TP %s). "
+                          "Si le contexte est bon, réponds dans %s par <id>;GO;%I64d;0;raison : l'EA entrera à la seconde du signal %s "
+                          "pendant %d min, sans redemander (ratio, lot et gain minimum vérifiés au signal). "
+                          "<id>;NON;%I64d;0;raison refuse la zone pour la journée. Sans réponse en %d min, l'EA redemandera au moment du signal.\n",
+                          z.armId, z.sym, z.dir == -1 ? "VENTE" : "ACHAT", z.cassure ? "SUR CASSURE" : "SUR REBOND", where,
+                          DoubleToString(px, dg), DoubleToString(z.zlo, dg), DoubleToString(z.zhi, dg),
+                          DoubleToString(z.slDay, dg), DoubleToString(z.tp, dg), ActionsFileName(), z.armId, TfName(),
+                          ArmValidMin, z.armId, ConfirmTimeoutMin));
+   urgentFire = true;
+   pushNeeded = true;
+  }
+
+string ArmTag(const Zone &z)
+  {
+   if(z.done)
+      return "";
+   if(z.armState == 1)
+      return StringFormat(" · feu vert anticipé demandé (n°%I64d)", z.armId);
+   if(z.armState == 2)
+      return " · feu vert anticipé : armé jusqu'à " + TimeToString(CayenneNow() + (z.armUntil - TimeLocal()), TIME_MINUTES);
+   return "";
   }
 
 // GO reçu : on entre dès que les conditions sont bonnes ; délai dépassé : la demande tombe
@@ -473,6 +539,19 @@ void ProcessConfirm()
   {
    for(int i = 0; i < ArraySize(zones); i++)
      {
+      // v1.56 : feu vert anticipé sans réponse ou arrivé au bout de sa validité
+      if(zones[i].armState == 1 && TimeLocal() - zones[i].armTime > ConfirmTimeoutMin * 60)
+        {
+         zones[i].armState = 0;
+         Print(zones[i].sym, StringFormat(" : pas de réponse au feu vert anticipé n°%I64d, l'EA demandera au signal", zones[i].armId));
+         pushNeeded = true;
+        }
+      if(zones[i].armState == 2 && TimeLocal() > zones[i].armUntil)
+        {
+         zones[i].armState = 0;
+         Print(zones[i].sym, StringFormat(" : feu vert anticipé n°%I64d expiré sans signal", zones[i].armId));
+         pushNeeded = true;
+        }
       if(zones[i].done || (zones[i].reqState != 1 && zones[i].reqState != 2))
          continue;
       if(TimeLocal() - zones[i].reqTime > ConfirmTimeoutMin * 60)
@@ -515,6 +594,25 @@ string HandleConfirm(const string act, long id, const string why)
       zones[i].done     = true;
       zones[i].status   = "refusée par Claude (" + why + ")";
       return "NON n°" + IntegerToString(id) + " pour " + zones[i].sym + " (" + why + ")";
+     }
+   // v1.56 : réponse à un feu vert anticipé
+   for(int i = 0; i < ArraySize(zones); i++)
+     {
+      if(zones[i].armId != id || id == 0)
+         continue;
+      if(zones[i].armState != 1 || zones[i].done)
+         return act + " n°" + IntegerToString(id) + " ignoré : feu vert anticipé déjà traité ou expiré";
+      if(act == "GO")
+        {
+         zones[i].armState = 2;
+         zones[i].armUntil = TimeLocal() + ArmValidMin * 60;
+         return "GO anticipé n°" + IntegerToString(id) + " pour " + zones[i].sym + ", valable " +
+                IntegerToString(ArmValidMin) + " min (" + why + ")";
+        }
+      zones[i].armState = 0;
+      zones[i].done     = true;
+      zones[i].status   = "refusée par Claude au feu vert anticipé (" + why + ")";
+      return "NON anticipé n°" + IntegerToString(id) + " pour " + zones[i].sym + " (" + why + ")";
      }
    return act + " n°" + IntegerToString(id) + " ignoré : demande inconnue";
   }
@@ -602,6 +700,7 @@ void ProcessZone(Zone &z)
       if(b.low  <= z.tp && !z.touched) { z.done = true; z.status = "objectif atteint sans entrée"; return; }
       if(b.high >= z.zlo)
         {
+         bool first = !z.touched;
          if(!z.touched || b.high > z.extreme)
            {
             z.extreme     = b.high;
@@ -610,6 +709,8 @@ void ProcessZone(Zone &z)
            }
          z.touched = true;
          z.status  = "dans la zone, attente de cassure " + TfName() + " sous " + DoubleToString(z.structLevel, SymDigits(z.sym));
+         if(first)
+            RequestArm(z, b.close, "le prix touche la zone");
         }
       if(z.touched && b.time > z.extremeTime && b.close < z.structLevel)
          TryEnter(z, r);
@@ -620,6 +721,7 @@ void ProcessZone(Zone &z)
       if(b.high >= z.tp && !z.touched) { z.done = true; z.status = "objectif atteint sans entrée"; return; }
       if(b.low <= z.zhi)
         {
+         bool first = !z.touched;
          if(!z.touched || b.low < z.extreme)
            {
             z.extreme     = b.low;
@@ -628,6 +730,8 @@ void ProcessZone(Zone &z)
            }
          z.touched = true;
          z.status  = "dans la zone, attente de cassure " + TfName() + " au-dessus de " + DoubleToString(z.structLevel, SymDigits(z.sym));
+         if(first)
+            RequestArm(z, b.close, "le prix touche la zone");
         }
       if(z.touched && b.time > z.extremeTime && b.close > z.structLevel)
          TryEnter(z, r);
@@ -679,6 +783,8 @@ void ProcessBreakout(Zone &z, const MqlRates &r[])
       if(px >= z.zhi)
         {
          z.status = "CASSURE : attente d'une clôture " + TfName() + " sous " + DoubleToString(z.zhi, dg);
+         if(px - z.zhi <= ArmBreakoutATR * AtrD1(z.sym))
+            RequestArm(z, px, "le prix approche du niveau " + DoubleToString(z.zhi, dg));
          return;
         }
       if(px < z.zlo)
@@ -701,6 +807,8 @@ void ProcessBreakout(Zone &z, const MqlRates &r[])
       if(px <= z.zlo)
         {
          z.status = "CASSURE : attente d'une clôture " + TfName() + " au-dessus de " + DoubleToString(z.zlo, dg);
+         if(z.zlo - px <= ArmBreakoutATR * AtrD1(z.sym))
+            RequestArm(z, px, "le prix approche du niveau " + DoubleToString(z.zlo, dg));
          return;
         }
       if(px > z.zhi)
@@ -863,7 +971,7 @@ int LossesToday()
 //+------------------------------------------------------------------+
 string lotNote = "";   // explique une réduction du volume (marge insuffisante)
 string lotDiag = "";   // v1.55 : chiffres du dernier refus « lot minimum »
-const string EA_VERSION = "1.55";
+const string EA_VERSION = "1.56";
 
 // Coup du mois : clé du mois en cours (heure de Cayenne), ex. 202611
 string CoupMonth()
@@ -1073,9 +1181,30 @@ void TryEnter(Zone &z, const MqlRates &r[])
       return;
      }
 
-   // v1.49 : feu vert de Claude
-   if(UseConfirm() && z.reqState != 2)
+   // v1.49 : feu vert de Claude ; v1.56 : un feu vert anticipé encore valable vaut GO
+   bool armed = (z.armState == 2 && TimeLocal() <= z.armUntil);
+   if(UseConfirm() && z.reqState != 2 && !armed)
      {
+      if(z.armState == 1 && z.reqState == 0)
+        {
+         // v1.56 : le feu vert anticipé n'a pas encore de réponse : il devient la demande d'entrée
+         double riskMoneyA = (tickSize > 0) ? risk / tickSize * tickValue * lots : 0;
+         z.reqId    = z.armId;
+         z.reqTime  = TimeLocal();
+         z.reqState = 1;
+         z.reqCount++;
+         z.armState = 0;
+         QueueFire(StringFormat("SIGNAL %s pour la demande n°%I64d (feu vert anticipé encore sans réponse) : %s %s %s lot au prix %s, "
+                                "SL %s, TP %s, ratio %.2f, risque %.0f %s. Elle vaut maintenant demande d'entrée : GO = entrée immédiate, "
+                                "NON = zone refusée. Sans réponse en %d min : pas d'entrée.\n",
+                                TfName(), z.reqId, z.sym, z.dir == -1 ? "VENTE" : "ACHAT", LotStr(z.sym, lots),
+                                DoubleToString(price, dg), DoubleToString(sl, dg), DoubleToString(tp, dg), rr, riskMoneyA,
+                                AccountInfoString(ACCOUNT_CURRENCY), ConfirmTimeoutMin));
+         urgentFire = true;
+         pushNeeded = true;
+         z.status = StringFormat("signal %s : attente du feu vert de Claude (demande n°%I64d)", TfName(), z.reqId);
+         return;
+        }
       if(z.reqState == 1)
         {
          z.status = StringFormat("signal %s : attente du feu vert de Claude (demande n°%I64d)", TfName(), z.reqId);
@@ -1116,6 +1245,8 @@ void TryEnter(Zone &z, const MqlRates &r[])
      {
       z.done   = true;
       z.reqState = 0;
+      long armedId = armed ? z.armId : 0;
+      z.armState = 0;
       // Mémorise le risque initial (distance entrée → SL) pour la sortie quand l'élan s'essouffle
       GlobalVariableSet("PE_R_" + IntegerToString((long)trade.ResultOrder()), MathAbs(trade.ResultPrice() - sl));
       z.status = StringFormat("ENTRÉE %s %s lot à %s, SL %s, TP %s (ratio %.2f)",
@@ -1124,6 +1255,8 @@ void TryEnter(Zone &z, const MqlRates &r[])
                               DoubleToString(sl, dg), DoubleToString(tp, dg), rr);
       if(lotNote != "")
          z.status += " — " + lotNote;
+      if(armedId != 0)
+         z.status += StringFormat(" — feu vert anticipé n°%I64d", armedId);
       // v1.51 : une seule entrée par marché et par jour : l'autre zone du même marché est annulée
       for(int s = 0; s < ArraySize(zones); s++)
          if(zones[s].sym == z.sym && !zones[s].done && ZoneKey(zones[s]) != ZoneKey(z))
@@ -1926,6 +2059,7 @@ string SettingsStr()
           " / suivi " + (TrailEnabled ? D(TrailStartR, 2) + "R " + IntegerToString(TrailBarsH1) + " H1" : "non") +
           " / cassures " + (BreakoutZones ? "oui" : "non") +
           " / feu vert " + (ConfirmEntries ? "oui" : "non") +
+          " / feu vert anticipé " + (ArmEnabled ? IntegerToString(ArmValidMin) + " min" : "non") +
           " / coup " + (CoupEnabled ? D(CoupRiskPercent, 0) + "%" : "non") +
           " / pause " + (Paused ? "oui" : "non") +
           " / compte réel autorisé " + (AllowRealAccount ? "oui" : "non");
@@ -1995,7 +2129,7 @@ string BuildDataCsv()
       int dg = SymDigits(zones[i].sym);
       s += "ZONE;" + zones[i].sym + ";" + (zones[i].dir == 1 ? "BUY" : "SELL") + ";" + D(zones[i].zlo, dg) + ";" +
            D(zones[i].zhi, dg) + ";" + D(zones[i].slDay, dg) + ";" + D(zones[i].tp, dg) + ";" + D(zones[i].tp1, dg) + ";" +
-           (zones[i].touched ? "1" : "0") + ";" + (zones[i].reserve ? "réserve : " : "") + Clean(zones[i].status) + "\n";
+           (zones[i].touched ? "1" : "0") + ";" + (zones[i].reserve ? "réserve : " : "") + Clean(zones[i].status + ArmTag(zones[i])) + "\n";
      }
 
    s += "#POS;ticket;symbole;type;volume;ouverture_utc;prix_ouverture;sl;tp;prix_actuel;profit;swap;magic;commentaire\n";
