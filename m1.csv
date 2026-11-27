@@ -1,14 +1,14 @@
-#generated_utc;2026.11.27 13:26
+#generated_utc;2026.11.27 13:41
 EA;version=M1-1.00;mode=observation (aucun trade);plan=2026-11-27;erreur=;compte=27743317;reglages=ratio min 1.50 / stop min 0.70 ATR / preuve max 0.25 ATR / preuve M1 5 bougies / mèche 50% / sens M5 oui / spread max 20% / entrées 3h-16h / vendredi 16h / cassures oui
 #ZONE;symbole;sens;type;zone_bas;zone_haut;sl_jour;tp;tp1;etat_M1;etat_M5;M1_ecartes
-ZONE;OILCash#;BUY;rebond;85.85;86.15;84.10;89.95;87.55;dans la zone, attente d'une clôture M1 au-dessus de 86.21;dans la zone, attente d'une clôture M5 au-dessus de 86.21;mèche 4 / sens M5 1 / spread 2 / ratio 0 / horaires 0
-ZONE;BRENTCash#;BUY;rebond;94.70;95.05;92.95;99.30;96.45;dans la zone, attente d'une clôture M1 au-dessus de 95.36;dans la zone, attente d'une clôture M5 au-dessus de 95.36;mèche 0 / sens M5 3 / spread 5 / ratio 0 / horaires 0
+ZONE;OILCash#;BUY;rebond;85.85;86.15;84.10;89.95;87.55;dans la zone, attente d'une clôture M1 au-dessus de 85.79;dans la zone, attente d'une clôture M5 au-dessus de 86.21;mèche 4 / sens M5 1 / spread 2 / ratio 0 / horaires 0
+ZONE;BRENTCash#;BUY;rebond;94.70;95.05;92.95;99.30;96.45;dans la zone, attente d'une clôture M1 au-dessus de 94.99;dans la zone, attente d'une clôture M5 au-dessus de 95.36;mèche 0 / sens M5 3 / spread 6 / ratio 0 / horaires 0
 ZONE;USDJPY#;BUY;rebond;159.200;159.300;158.880;160.150;159.800;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 ZONE;US500Cash#;BUY;rebond;7240.00;7255.00;7165.00;7420.00;7325.00;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 ZONE;US100Cash#;BUY;rebond;26380.00;26450.00;25930.00;27400.00;26800.00;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 ZONE;GOLD#;SELL;rebond;3690.00;3705.00;3745.00;3560.00;3627.00;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
-ZONE;NGASCash#;BUY;rebond;3.100;3.120;3.045;3.265;3.205;dans la zone, attente d'une clôture M1 au-dessus de 3.107;dans la zone, attente d'une clôture M5 au-dessus de 3.137;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
-ZONE;GBPUSD#;BUY;rebond;1.30950;1.31100;1.30720;1.31900;1.31400;dans la zone, attente d'une clôture M1 au-dessus de 1.31123;dans la zone, attente d'une clôture M5 au-dessus de 1.31274;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
+ZONE;NGASCash#;BUY;rebond;3.100;3.120;3.045;3.265;3.205;dans la zone, attente d'une clôture M1 au-dessus de 3.105;dans la zone, attente d'une clôture M5 au-dessus de 3.128;mèche 0 / sens M5 0 / spread 1 / ratio 0 / horaires 0
+ZONE;GBPUSD#;BUY;rebond;1.30950;1.31100;1.30720;1.31900;1.31400;signal M1 écarté : la bougie M5 en cours va contre le trade, zone gardée;dans la zone, attente d'une clôture M5 au-dessus de 1.31240;mèche 0 / sens M5 1 / spread 2 / ratio 0 / horaires 0
 ZONE;SILVER#;SELL;rebond;45.600;45.850;46.900;43.200;44.600;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 #SIG;date;symbole;sens;type;tf;heure_cayenne;prix;sl;tp;tp1;ratio;spread;etat;resultat_R;gain_max_R;recul_max_R;fin_cayenne
 #RESUME;tf;signaux;gagnants;perdants;a_zero;ouverts;total_R
