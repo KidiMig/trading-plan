@@ -1,4 +1,4 @@
-#generated_utc;2026.11.27 00:09
+#generated_utc;2026.11.27 00:24
 EA;version=M1-1.00;mode=observation (aucun trade);plan=2026-11-26;erreur=;compte=27743317;reglages=ratio min 1.50 / stop min 0.70 ATR / preuve max 0.25 ATR / preuve M1 5 bougies / mèche 50% / sens M5 oui / spread max 20% / entrées 3h-16h / vendredi 16h / cassures oui
 #ZONE;symbole;sens;type;zone_bas;zone_haut;sl_jour;tp;tp1;etat_M1;etat_M5;M1_ecartes
 ZONE;EURUSD#;SELL;rebond;1.09880;1.10000;1.10220;1.09000;1.09350;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
@@ -8,7 +8,7 @@ ZONE;US100Cash#;SELL;rebond;26400.00;26480.00;27000.00;25250.00;25950.00;en atte
 ZONE;SILVER#;SELL;rebond;42.000;42.300;43.200;39.400;40.850;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 ZONE;BRENTCash#;BUY;rebond;93.10;93.50;90.95;98.10;95.40;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 ZONE;OILCash#;BUY;rebond;84.20;84.60;81.95;89.40;86.25;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
-ZONE;NGASCash#;BUY;rebond;3.175;3.195;3.071;3.420;3.290;signal M1 hors des horaires d'entrée, zone gardée;dans la zone, attente d'une clôture M5 au-dessus de 3.198;mèche 0 / sens M5 9 / spread 15 / ratio 0 / horaires 35
+ZONE;NGASCash#;BUY;rebond;3.175;3.195;3.071;3.420;3.290;signal M1 hors des horaires d'entrée, zone gardée;dans la zone, attente d'une clôture M5 au-dessus de 3.198;mèche 0 / sens M5 9 / spread 15 / ratio 0 / horaires 40
 ZONE;GBPUSD#;SELL;rebond;1.31250;1.31400;1.31650;1.30480;1.30980;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 ZONE;USDJPY#;BUY;rebond;158.950;159.080;158.620;159.950;159.500;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 #SIG;date;symbole;sens;type;tf;heure_cayenne;prix;sl;tp;tp1;ratio;spread;etat;resultat_R;gain_max_R;recul_max_R;fin_cayenne
