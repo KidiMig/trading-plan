@@ -1,7 +1,7 @@
-#generated_utc;2026.11.27 12:11
+#generated_utc;2026.11.27 12:26
 EA;version=M1-1.00;mode=observation (aucun trade);plan=2026-11-27;erreur=;compte=27743317;reglages=ratio min 1.50 / stop min 0.70 ATR / preuve max 0.25 ATR / preuve M1 5 bougies / mèche 50% / sens M5 oui / spread max 20% / entrées 3h-16h / vendredi 16h / cassures oui
 #ZONE;symbole;sens;type;zone_bas;zone_haut;sl_jour;tp;tp1;etat_M1;etat_M5;M1_ecartes
-ZONE;OILCash#;BUY;rebond;85.85;86.15;84.10;89.95;87.55;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
+ZONE;OILCash#;BUY;rebond;85.85;86.15;84.10;89.95;87.55;dans la zone, attente d'une clôture M1 au-dessus de 86.31;dans la zone, attente d'une clôture M5 au-dessus de 86.40;mèche 3 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 ZONE;BRENTCash#;BUY;rebond;94.70;95.05;92.95;99.30;96.45;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 ZONE;USDJPY#;BUY;rebond;159.200;159.300;158.880;160.150;159.800;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 ZONE;US500Cash#;BUY;rebond;7240.00;7255.00;7165.00;7420.00;7325.00;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
