@@ -1,21 +1,22 @@
-#generated_utc;2026.11.27 15:40
+#generated_utc;2026.11.27 15:52
 EA;version=M1-1.00;mode=observation (aucun trade);plan=2026-11-27;erreur=;compte=27743317;reglages=ratio min 1.50 / stop min 0.70 ATR / preuve max 0.25 ATR / preuve M1 5 bougies / mèche 50% / sens M5 oui / spread max 20% / entrées 3h-16h / vendredi 16h / cassures oui
 #ZONE;symbole;sens;type;zone_bas;zone_haut;sl_jour;tp;tp1;etat_M1;etat_M5;M1_ecartes
-ZONE;OILCash#;BUY;rebond;85.85;86.15;84.10;89.95;87.55;dans la zone, attente d'une clôture M1 au-dessus de 84.88;dans la zone, attente d'une clôture M5 au-dessus de 85.16;mèche 4 / sens M5 9 / spread 17 / ratio 0 / horaires 0
+ZONE;OILCash#;BUY;rebond;85.85;86.15;84.10;89.95;87.55;dans la zone, attente d'une clôture M1 au-dessus de 84.86;dans la zone, attente d'une clôture M5 au-dessus de 85.09;mèche 4 / sens M5 9 / spread 17 / ratio 0 / horaires 0
 ZONE;BRENTCash#;BUY;rebond;94.70;95.05;92.95;99.30;96.45;dans la zone, attente d'une clôture M1 au-dessus de 94.44;dans la zone, attente d'une clôture M5 au-dessus de 94.61;mèche 0 / sens M5 11 / spread 17 / ratio 0 / horaires 0
 ZONE;USDJPY#;BUY;rebond;159.200;159.300;158.880;160.150;159.800;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 ZONE;US500Cash#;BUY;rebond;7240.00;7255.00;7165.00;7420.00;7325.00;SIGNAL M1 à 12:07, prix 7224.99, SL 7165.00, ratio 3.25;SIGNAL M5 à 12:25, prix 7251.75, SL 7165.00, ratio 1.94;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 ZONE;US100Cash#;BUY;rebond;26380.00;26450.00;25930.00;27400.00;26800.00;SIGNAL M1 à 12:07, prix 26243.97, SL 25930.00, ratio 3.68;SIGNAL M5 à 12:15, prix 26331.09, SL 25930.00, ratio 2.67;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 ZONE;GOLD#;SELL;rebond;3690.00;3705.00;3745.00;3560.00;3627.00;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
-ZONE;NGASCash#;BUY;rebond;3.100;3.120;3.045;3.265;3.205;signal M1 écarté : la bougie M5 en cours va contre le trade, zone gardée;SIGNAL M5 à 11:00, prix 3.128, SL 3.045, ratio 1.65;mèche 0 / sens M5 51 / spread 54 / ratio 0 / horaires 0
-ZONE;GBPUSD#;BUY;rebond;1.30950;1.31100;1.30720;1.31900;1.31400;dans la zone, attente d'une clôture M1 au-dessus de 1.31072;dans la zone, attente d'une clôture M5 au-dessus de 1.31184;mèche 0 / sens M5 32 / spread 45 / ratio 0 / horaires 0
+ZONE;NGASCash#;BUY;rebond;3.100;3.120;3.045;3.265;3.205;signal M1 écarté : spread 0.011 pour une bougie de 0.002, zone gardée;SIGNAL M5 à 11:00, prix 3.128, SL 3.045, ratio 1.65;mèche 0 / sens M5 56 / spread 60 / ratio 0 / horaires 0
+ZONE;GBPUSD#;BUY;rebond;1.30950;1.31100;1.30720;1.31900;1.31400;SIGNAL M1 à 12:52, prix 1.31058, SL 1.30720, ratio 2.49;dans la zone, attente d'une clôture M5 au-dessus de 1.31086;mèche 0 / sens M5 32 / spread 45 / ratio 0 / horaires 0
 ZONE;SILVER#;SELL;rebond;45.600;45.850;46.900;43.200;44.600;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
 #SIG;date;symbole;sens;type;tf;heure_cayenne;prix;sl;tp;tp1;ratio;spread;etat;resultat_R;gain_max_R;recul_max_R;fin_cayenne
 SIG;2026-11-27;NGASCash#;BUY;rebond;M5;2026.11.27 11:00;3.128;3.045;3.265;3.205;1.65;0.011;ouvert;;0.22;0.42;
-SIG;2026-11-27;US500Cash#;BUY;rebond;M1;2026.11.27 12:07;7224.99;7165.00;7420.00;7325.00;3.25;0.65;ouvert;;0.77;0.15;
-SIG;2026-11-27;US100Cash#;BUY;rebond;M1;2026.11.27 12:07;26243.97;25930.00;27400.00;26800.00;3.68;1.95;ouvert;;0.92;0.09;
-SIG;2026-11-27;US100Cash#;BUY;rebond;M5;2026.11.27 12:15;26331.09;25930.00;27400.00;26800.00;2.67;1.95;ouvert;;0.50;0.11;
-SIG;2026-11-27;US500Cash#;BUY;rebond;M5;2026.11.27 12:25;7251.75;7165.00;7420.00;7325.00;1.94;0.65;ouvert;;0.22;0.14;
+SIG;2026-11-27;US500Cash#;BUY;rebond;M1;2026.11.27 12:07;7224.99;7165.00;7420.00;7325.00;3.25;0.65;ouvert;;0.94;0.15;
+SIG;2026-11-27;US100Cash#;BUY;rebond;M1;2026.11.27 12:07;26243.97;25930.00;27400.00;26800.00;3.68;1.95;ouvert;;1.03;0.09;
+SIG;2026-11-27;US100Cash#;BUY;rebond;M5;2026.11.27 12:15;26331.09;25930.00;27400.00;26800.00;2.67;1.95;ouvert;;0.59;0.11;
+SIG;2026-11-27;US500Cash#;BUY;rebond;M5;2026.11.27 12:25;7251.75;7165.00;7420.00;7325.00;1.94;0.65;ouvert;;0.34;0.14;
+SIG;2026-11-27;GBPUSD#;BUY;rebond;M1;2026.11.27 12:52;1.31058;1.30720;1.31900;1.31400;2.49;0.00013;ouvert;;0.00;0.00;
 #RESUME;tf;signaux;gagnants;perdants;a_zero;ouverts;total_R
-RESUME;M1;2;0;0;0;2;0.00
+RESUME;M1;3;0;0;0;3;0.00
 RESUME;M5;3;0;0;0;3;0.00
