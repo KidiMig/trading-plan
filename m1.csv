@@ -1,4 +1,4 @@
-#generated_utc;2026.11.27 08:39
+#generated_utc;2026.11.27 08:54
 EA;version=M1-1.00;mode=observation (aucun trade);plan=2026-11-26;erreur=;compte=27743317;reglages=ratio min 1.50 / stop min 0.70 ATR / preuve max 0.25 ATR / preuve M1 5 bougies / mèche 50% / sens M5 oui / spread max 20% / entrées 3h-16h / vendredi 16h / cassures oui
 #ZONE;symbole;sens;type;zone_bas;zone_haut;sl_jour;tp;tp1;etat_M1;etat_M5;M1_ecartes
 ZONE;EURUSD#;SELL;rebond;1.09880;1.10000;1.10220;1.09000;1.09350;en attente de la zone;en attente de la zone;mèche 0 / sens M5 0 / spread 0 / ratio 0 / horaires 0
