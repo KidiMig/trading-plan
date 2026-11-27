@@ -1,4 +1,4 @@
-; PlanExecutorM1 M1-1.00 : OBSERVATION, ne trade pas. À poser sur un graphique du MT5 du démo, à côté du PlanExecutor M5.
+; PlanExecutorM1 M1-1.01 : OBSERVATION, ne trade pas. À poser sur un graphique du MT5 du démo, à côté du PlanExecutor M5.
 ; Écrit m1.csv sur la branche m1 du dépôt. Le jeton GitHubToken (le même que celui du démo) se saisit dans MT5, jamais dans ce fichier.
 GitHubRepo=kidimig/trading-plan
 DataBranch=m1

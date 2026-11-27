@@ -24,9 +24,11 @@
 //|  avant l'objectif 1 = -1 R ; objectif 1 puis retour au prix       |
 //|  d'entrée = 0 R ; objectif final = + ratio R ; vendredi à         |
 //|  FridayCloseHour ou après MaxDays jours : clôture au cours.       |
+//|  M1-1.01 : clôture du vendredi aussi quand le marché a fermé plus |
+//|  tôt (indices du Black Friday) : au dernier cours connu.          |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.00"
+#property version   "1.01"
 
 input group "Envoi des données vers GitHub"
 input string GitHubToken        = "";    // Jeton GitHub (le même que l'EA du démo)
@@ -58,7 +60,7 @@ input group "Suivi des trades virtuels"
 input int    MaxDays            = 5;     // Trade virtuel encore ouvert : clôturé au bout de N jours
 input int    KeepDays           = 21;    // Signaux gardés dans m1.csv (jours)
 
-const string EA_VERSION = "M1-1.00";
+const string EA_VERSION = "M1-1.01";
 const string SIG_FILE   = "PlanExecutorM1_signaux.csv";
 
 //--- État d'une zone pour une unité de temps (M1 ou M5)
@@ -722,11 +724,9 @@ void UpdateSignals()
       MqlRates r[];
       ArraySetAsSeries(r, false);
       datetime from = sigs[i].lastBar + 60;
-      if(from > now)
-         continue;
-      int n = CopyRates(sigs[i].sym, PERIOD_M1, from, now, r);
-      if(n <= 0)
-         continue;
+      int n = (from <= now) ? CopyRates(sigs[i].sym, PERIOD_M1, from, now, r) : 0;
+      if(n < 0)
+         n = 0;                      // pas de nouvelle bougie : on passe quand même au contrôle du vendredi
       double risk = MathAbs(sigs[i].price - sigs[i].sl);
       if(risk <= 0)
         {
@@ -792,6 +792,22 @@ void UpdateSignals()
               {
                CloseSig(sigs[i], 3, sigs[i].rr, tEnd);
                break;
+              }
+           }
+        }
+      // M1-1.01 : vendredi après l'heure de fermeture (ou week-end) et marché déjà fermé : clôture au dernier cours
+      if(sigs[i].state == 0)
+        {
+         MqlDateTime c;
+         TimeToStruct(CayenneNow(), c);
+         bool weekend = (c.day_of_week == 5 && c.hour >= FridayCloseHour) || c.day_of_week == 6 || c.day_of_week == 0;
+         if(weekend && CayenneNow() - CayOf(sigs[i].t) > 0)
+           {
+            double last = iClose(sigs[i].sym, PERIOD_M1, 0);
+            if(last > 0)
+              {
+               double ex = last + (sell ? sp : 0);
+               CloseSig(sigs[i], 4, (sell ? sigs[i].price - ex : ex - sigs[i].price) / risk, now);
               }
            }
         }
