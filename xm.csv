@@ -1,9 +1,9 @@
 #ver;1
-#generated_utc;2026-11-28 02:46
+#generated_utc;2026-11-28 04:24
 #server_utc_offset_h;2
 #times;BAR D1 = date serveur XM, BAR H1/M15/M5, POS et DEAL = heure UTC
-ACCOUNT;15188995;XM.COM-MT5;EUR;98.20;98.20;98.20;REAL
-EA;plan=2026-11-27;entrees=vendredi soir;erreur=;risque=10.00;maxpos=2;mode=confirmation M5;suivi=H1;ordres_claude=oui;dernier_ordre=TP de NGASCash# déplacé à 3.195 (Ouverture du jour 3.197 et 3.20 avant TP 3.265 hors de portee avant fermeture vendredi 16h - meme TP que le demo);reveil=dernier réveil le 2026.11.27 12:26;coup=disponible ce mois;prioritaires=0;feu_vert=oui;cassure=oui;verrou=1.00R/0.70R (sinon 10/7);version=1.56;reglages=risque 10.0% / positions 2 / pertes max par jour 2 / ratio min 1.50 / gain min 5 / filtre du jour non / stop min 0.70 ATR / preuve max 0.25 ATR / pause annonces 0 min / entrées 3h-16h / vendredi 16h / verrou 1.00R/0.70R (sinon 10/7) / suivi 0.50R 2 H1 / cassures oui / feu vert oui / feu vert anticipé 30 min / coup 30% / pause non / compte réel autorisé oui
+ACCOUNT;15188995;XM.COM-MT5;EUR;248.20;248.20;248.20;REAL
+EA;plan=2026-11-27;entrees=week-end;erreur=;risque=10.00;maxpos=2;mode=confirmation M5;suivi=H1;ordres_claude=oui;dernier_ordre=TP de NGASCash# déplacé à 3.195 (Ouverture du jour 3.197 et 3.20 avant TP 3.265 hors de portee avant fermeture vendredi 16h - meme TP que le demo);reveil=dernier réveil le 2026.11.27 12:26;coup=disponible ce mois;prioritaires=0;feu_vert=oui;cassure=oui;verrou=1.00R/0.70R (sinon 10/7);version=1.56;reglages=risque 10.0% / positions 2 / pertes max par jour 2 / ratio min 1.50 / gain min 5 / filtre du jour non / stop min 0.70 ATR / preuve max 0.25 ATR / pause annonces 0 min / entrées 3h-16h / vendredi 16h / verrou 1.00R/0.70R (sinon 10/7) / suivi 0.50R 2 H1 / cassures oui / feu vert oui / feu vert anticipé 30 min / coup 30% / pause non / compte réel autorisé oui
 #ZONE;symbole;sens;zone_bas;zone_haut;sl_jour;tp;tp1;touchee;etat
 ZONE;OILCash#;BUY;85.85;86.15;84.10;89.95;87.55;1;invalidée (stop journalier touché)
 ZONE;BRENTCash#;BUY;94.70;95.05;92.95;99.30;96.45;1;signal M5 ignoré : vendredi soir
