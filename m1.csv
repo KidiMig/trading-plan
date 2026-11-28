@@ -1,4 +1,4 @@
-#generated_utc;2026.11.28 00:30
+#generated_utc;2026.11.28 00:45
 EA;version=M1-1.00;mode=observation (aucun trade);plan=2026-11-27;erreur=;compte=27743317;reglages=ratio min 1.50 / stop min 0.70 ATR / preuve max 0.25 ATR / preuve M1 5 bougies / mèche 50% / sens M5 oui / spread max 20% / entrées 3h-16h / vendredi 16h / cassures oui
 #ZONE;symbole;sens;type;zone_bas;zone_haut;sl_jour;tp;tp1;etat_M1;etat_M5;M1_ecartes
 ZONE;OILCash#;BUY;rebond;85.85;86.15;84.10;89.95;87.55;SIGNAL M1 à 13:18, prix 84.58, SL 84.10, ratio 11.19;invalidée (stop journalier touché);mèche 4 / sens M5 9 / spread 17 / ratio 0 / horaires 0
