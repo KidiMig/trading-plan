@@ -1,4 +1,4 @@
-; Réglages du compte réel (100 €, 10 % de risque par trade) - PlanExecutor v1.56
+; Réglages du compte réel (10 % de risque par trade) - PlanExecutor v1.57
 ; Mêmes options que le démo (feu vert de Claude, ordres de Claude, réveils, cassures, alerte mouvement brutal, coup du mois).
 ; Seuls les montants changent : risque, gain minimum, verrouillage, et 2 positions maximum pour que la marge de 100 € suffise.
 ; Les jetons (GitHubToken, RoutineToken) et l'adresse RoutineURL se saisissent dans MT5, jamais dans ce fichier.
@@ -41,6 +41,10 @@ ConfirmMaxAsk=2
 ArmEnabled=true
 ArmValidMin=30
 ArmBreakoutATR=0.15
+; v1.57 : indices US sans entrée avant l'ouverture de Wall Street (9h30 à New York = 11h30 à Cayenne en hiver, 10h30 en été).
+IndexSymbols=US500Cash#,US100Cash#
+IndexOpenNY=09:30
+IndexDelayMin=0
 FastMoveAlert=true
 FastMoveATR=0.5
 FastMoveMinutes=15

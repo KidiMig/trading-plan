@@ -1,4 +1,4 @@
-; Réglages du compte DÉMO XM 27743317 (test agressif à 20 %) - PlanExecutor v1.56
+; Réglages du compte DÉMO XM 27743317 (test agressif à 20 %) - PlanExecutor v1.57
 ; Les jetons (GitHubToken, RoutineToken) et l'adresse RoutineURL se saisissent dans MT5, jamais dans ce fichier.
 DataBranch=live
 RiskPercent=20
@@ -39,6 +39,10 @@ ConfirmMaxAsk=2
 ArmEnabled=true
 ArmValidMin=30
 ArmBreakoutATR=0.15
+; v1.57 : indices US sans entrée avant l'ouverture de Wall Street (9h30 à New York = 11h30 à Cayenne en hiver, 10h30 en été).
+IndexSymbols=US500Cash#,US100Cash#
+IndexOpenNY=09:30
+IndexDelayMin=0
 FastMoveAlert=true
 FastMoveATR=0.5
 FastMoveMinutes=15

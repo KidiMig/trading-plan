@@ -10,6 +10,12 @@
 //|    GOLD#;SELL;4205;4219;4255;4115;4150                            |
 //|    8e colonne facultative COUP = coup du mois (v1.45)            |
 //|    ou CASSURE = entrée sur cassure d'un niveau (v1.51)           |
+//|  v1.57 : indices US (IndexSymbols) : aucune entrée ni feu vert   |
+//|    anticipé avant l'ouverture de Wall Street (IndexOpenNY, heure |
+//|    de New York, été/hiver calculés) ; l'état des zones (demandes |
+//|    de feu vert, sommet, entrée du jour) est gardé dans un fichier|
+//|    et retrouvé si l'EA redémarre ; feu vert anticipé redemandé  |
+//|    tant que le prix est dans la zone (s'il était bloqué avant)   |
 //|  v1.56 : feu vert anticipé -> l'EA demande le GO dès que le prix |
 //|    touche la zone (ou approche du niveau d'une cassure) ; GO =   |
 //|    entrée à la seconde du signal pendant ArmValidMin minutes    |
@@ -52,7 +58,7 @@
 //|  positions et les trades dans xm.csv (branche « live » du dépôt). |
 //+------------------------------------------------------------------+
 #property copyright "Plan de trading du jour"
-#property version   "1.56"
+#property version   "1.57"
 
 #include <Trade\Trade.mqh>
 
@@ -123,6 +129,11 @@ input group "Feu vert anticipé (v1.56)"
 input bool   ArmEnabled         = true;  // Demander le feu vert dès que le prix touche la zone : l'EA entre ensuite à la seconde du signal
 input int    ArmValidMin        = 30;    // Validité du feu vert anticipé après le GO de Claude (minutes)
 input double ArmBreakoutATR     = 0.15;  // Cassure : demander le feu vert quand le prix est à moins de X fois l'ATR D1 du niveau
+
+input group "Indices US (v1.57)"
+input string IndexSymbols       = "US500Cash#,US100Cash#"; // Indices sans entrée avant l'ouverture de Wall Street (vide = sans règle)
+input string IndexOpenNY        = "09:30"; // Ouverture de Wall Street, heure de New York (été/hiver calculés par l'EA)
+input int    IndexDelayMin      = 0;     // Minutes d'attente en plus après l'ouverture
 
 input group "Alerte mouvement brutal (v1.50)"
 input bool   FastMoveAlert      = true;  // Réveiller Claude tout de suite si le prix part fort contre une position
@@ -254,6 +265,7 @@ void OnTimer()
       for(int i = 0; i < ArraySize(zones); i++)
          ProcessZone(zones[i]);
       ProcessConfirm();
+      SaveZoneState();                 // v1.57
      }
 
    if(GitHubToken != "")
@@ -449,9 +461,160 @@ void ParsePlan(string text)
    for(int j = 0; j < nn; j++)
       newsTimes[j] = news[j];
    Print("Nouveau plan du ", planDate, " : ", ArraySize(zones), " zone(s)");
+   LoadZoneState();                    // v1.57 : redémarrage dans la journée : on reprend l'état des zones
   }
 
 bool PlanIsToday() { return planDate != "" && planDate == TodayCayenne(); }
+
+//+------------------------------------------------------------------+
+//| v1.57 : heure de New York (heure d'été du 2e dimanche de mars au  |
+//| 1er dimanche de novembre) et règle d'ouverture des indices US     |
+//+------------------------------------------------------------------+
+int SundayOf(int year, int month, int nth)
+  {
+   MqlDateTime t;
+   ZeroMemory(t);
+   t.year = year;
+   t.mon  = month;
+   t.day  = 1;
+   MqlDateTime d;
+   TimeToStruct(StructToTime(t), d);
+   return 1 + (7 - d.day_of_week) % 7 + 7 * (nth - 1);
+  }
+
+bool UsDst(datetime utc)
+  {
+   MqlDateTime t;
+   TimeToStruct(utc, t);
+   MqlDateTime a;
+   ZeroMemory(a);
+   a.year = t.year;
+   a.mon  = 3;
+   a.day  = SundayOf(t.year, 3, 2);
+   a.hour = 7;                         // 2h heure d'hiver de New York = 7h UTC
+   MqlDateTime b;
+   ZeroMemory(b);
+   b.year = t.year;
+   b.mon  = 11;
+   b.day  = SundayOf(t.year, 11, 1);
+   b.hour = 6;                         // 2h heure d'été de New York = 6h UTC
+   return utc >= StructToTime(a) && utc < StructToTime(b);
+  }
+
+datetime NewYorkNow() { datetime u = TimeGMT(); return u + (UsDst(u) ? -4 : -5) * 3600; }
+
+bool IsIndexSymbol(const string sym)
+  {
+   if(IndexSymbols == "")
+      return false;
+   string list[];
+   int n = StringSplit(IndexSymbols, ',', list);
+   for(int i = 0; i < n; i++)
+     {
+      string x = list[i];
+      StringTrimLeft(x);
+      StringTrimRight(x);
+      if(x == sym)
+         return true;
+     }
+   return false;
+  }
+
+// Vide si l'entrée est permise, sinon la raison (avant l'ouverture de Wall Street)
+string IndexBlock(const string sym)
+  {
+   if(!IsIndexSymbol(sym))
+      return "";
+   string hm[];
+   if(StringSplit(IndexOpenNY, ':', hm) != 2)
+      return "";
+   int openMin = (int)StringToInteger(hm[0]) * 60 + (int)StringToInteger(hm[1]) + MathMax(0, IndexDelayMin);
+   MqlDateTime ny;
+   TimeToStruct(NewYorkNow(), ny);
+   if(ny.hour * 60 + ny.min >= openMin)
+      return "";
+   datetime cayOpen = CayenneNow() + (openMin - (ny.hour * 60 + ny.min)) * 60;
+   return "pas d'entrée sur les indices US avant l'ouverture de Wall Street (" + TimeToString(cayOpen, TIME_MINUTES) +
+          " heure de Cayenne), zone gardée";
+  }
+
+//+------------------------------------------------------------------+
+//| v1.57 : mémoire des zones, pour retrouver l'état après un         |
+//| redémarrage de l'EA (mise à jour, VPS, MT5 relancé)               |
+//+------------------------------------------------------------------+
+string StateFile() { return "PlanExecutor_zones_" + IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN)) + ".csv"; }
+
+void SaveZoneState()
+  {
+   if(planDate == "")
+      return;
+   int h = FileOpen(StateFile(), FILE_WRITE | FILE_TXT | FILE_UNICODE);
+   if(h == INVALID_HANDLE)
+      return;
+   FileWriteString(h, "#date\t" + planDate + "\n");
+   for(int i = 0; i < ArraySize(zones); i++)
+     {
+      string st = zones[i].status;
+      StringReplace(st, "\t", " ");
+      StringReplace(st, "\n", " ");
+      FileWriteString(h, ZoneKey(zones[i]) + "\t" + (zones[i].touched ? "1" : "0") + "\t" +
+                      DoubleToString(zones[i].extreme, 8) + "\t" + IntegerToString((long)zones[i].extremeTime) + "\t" +
+                      DoubleToString(zones[i].structLevel, 8) + "\t" + (zones[i].done ? "1" : "0") + "\t" + st + "\t" +
+                      IntegerToString(zones[i].reqId) + "\t" + IntegerToString((long)zones[i].reqTime) + "\t" +
+                      IntegerToString(zones[i].reqState) + "\t" + IntegerToString(zones[i].reqCount) + "\t" +
+                      IntegerToString(zones[i].armId) + "\t" + IntegerToString((long)zones[i].armTime) + "\t" +
+                      IntegerToString((long)zones[i].armUntil) + "\t" + IntegerToString(zones[i].armState) + "\t" +
+                      IntegerToString(zones[i].armCount) + "\n");
+     }
+   FileClose(h);
+  }
+
+void LoadZoneState()
+  {
+   if(!FileIsExist(StateFile()))
+      return;
+   int h = FileOpen(StateFile(), FILE_READ | FILE_TXT | FILE_UNICODE);
+   if(h == INVALID_HANDLE)
+      return;
+   string first = FileReadString(h);
+   string fd[];
+   if(StringSplit(first, '\t', fd) < 2 || fd[0] != "#date" || fd[1] != planDate)
+     {
+      FileClose(h);                    // mémoire d'un autre jour : on l'ignore
+      return;
+     }
+   int restored = 0;
+   while(!FileIsEnding(h))
+     {
+      string f[];
+      if(StringSplit(FileReadString(h), '\t', f) < 16)
+         continue;
+      for(int i = 0; i < ArraySize(zones); i++)
+        {
+         if(ZoneKey(zones[i]) != f[0])
+            continue;
+         zones[i].touched     = (f[1] == "1");
+         zones[i].extreme     = StringToDouble(f[2]);
+         zones[i].extremeTime = (datetime)StringToInteger(f[3]);
+         zones[i].structLevel = StringToDouble(f[4]);
+         zones[i].done        = (f[5] == "1");
+         zones[i].status      = f[6];
+         zones[i].reqId       = StringToInteger(f[7]);
+         zones[i].reqTime     = (datetime)StringToInteger(f[8]);
+         zones[i].reqState    = (int)StringToInteger(f[9]);
+         zones[i].reqCount    = (int)StringToInteger(f[10]);
+         zones[i].armId       = StringToInteger(f[11]);
+         zones[i].armTime     = (datetime)StringToInteger(f[12]);
+         zones[i].armUntil    = (datetime)StringToInteger(f[13]);
+         zones[i].armState    = (int)StringToInteger(f[14]);
+         zones[i].armCount    = (int)StringToInteger(f[15]);
+         restored++;
+        }
+     }
+   FileClose(h);
+   if(restored > 0)
+      Print("Mémoire des zones retrouvée après redémarrage : ", restored, " zone(s)");
+  }
 
 string ZoneKey(const Zone &z)
   {
@@ -501,8 +664,8 @@ void RequestArm(Zone &z, double px, const string where)
       return;
    if(z.armState != 0 || z.armCount >= 1 || z.reqState != 0)
       return;
-   if(BlockReason() != "")
-      return;                           // hors horaires, positions pleines, pertes du jour... : inutile de demander
+   if(BlockReason() != "" || IndexBlock(z.sym) != "")
+      return;                           // hors horaires, positions pleines, indices avant l'ouverture... : inutile de demander
    if(z.coup && CoupEnabled && !CoupUsedThisMonth())
       return;                           // le coup du mois garde sa demande au moment du signal
    int dg = SymDigits(z.sym);
@@ -709,8 +872,8 @@ void ProcessZone(Zone &z)
            }
          z.touched = true;
          z.status  = "dans la zone, attente de cassure " + TfName() + " sous " + DoubleToString(z.structLevel, SymDigits(z.sym));
-         if(first)
-            RequestArm(z, b.close, "le prix touche la zone");
+         if(first || z.armCount == 0)
+            RequestArm(z, b.close, "le prix est dans la zone");
         }
       if(z.touched && b.time > z.extremeTime && b.close < z.structLevel)
          TryEnter(z, r);
@@ -730,8 +893,8 @@ void ProcessZone(Zone &z)
            }
          z.touched = true;
          z.status  = "dans la zone, attente de cassure " + TfName() + " au-dessus de " + DoubleToString(z.structLevel, SymDigits(z.sym));
-         if(first)
-            RequestArm(z, b.close, "le prix touche la zone");
+         if(first || z.armCount == 0)
+            RequestArm(z, b.close, "le prix est dans la zone");
         }
       if(z.touched && b.time > z.extremeTime && b.close > z.structLevel)
          TryEnter(z, r);
@@ -971,7 +1134,7 @@ int LossesToday()
 //+------------------------------------------------------------------+
 string lotNote = "";   // explique une réduction du volume (marge insuffisante)
 string lotDiag = "";   // v1.55 : chiffres du dernier refus « lot minimum »
-const string EA_VERSION = "1.56";
+const string EA_VERSION = "1.57";
 
 // Coup du mois : clé du mois en cours (heure de Cayenne), ex. 202611
 string CoupMonth()
@@ -1054,6 +1217,12 @@ void TryEnter(Zone &z, const MqlRates &r[])
    if(z.reserve)
      {
       z.status = StringFormat("signal ignoré : zone en réserve (seules les %d premières zones actives du plan entrent)", PriorityZones);
+      return;
+     }
+   string idx = IndexBlock(z.sym);     // v1.57 : indices US avant l'ouverture de Wall Street
+   if(idx != "")
+     {
+      z.status = "signal ignoré : " + idx;
       return;
      }
    if(CountPositions(z.sym) > 0)
@@ -2060,6 +2229,7 @@ string SettingsStr()
           " / cassures " + (BreakoutZones ? "oui" : "non") +
           " / feu vert " + (ConfirmEntries ? "oui" : "non") +
           " / feu vert anticipé " + (ArmEnabled ? IntegerToString(ArmValidMin) + " min" : "non") +
+          " / indices US après " + (IndexSymbols != "" ? IndexOpenNY + " New York" + (IndexDelayMin > 0 ? " +" + IntegerToString(IndexDelayMin) + " min" : "") : "sans règle") +
           " / coup " + (CoupEnabled ? D(CoupRiskPercent, 0) + "%" : "non") +
           " / pause " + (Paused ? "oui" : "non") +
           " / compte réel autorisé " + (AllowRealAccount ? "oui" : "non");
