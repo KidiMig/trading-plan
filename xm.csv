@@ -1,19 +1,19 @@
 #ver;1
-#generated_utc;2026-11-28 10:24
+#generated_utc;2026-11-28 10:52
 #server_utc_offset_h;2
 #times;BAR D1 = date serveur XM, BAR H1/M15/M5, POS et DEAL = heure UTC
 ACCOUNT;15188995;XM.COM-MT5;EUR;248.20;248.20;248.20;REAL
-EA;plan=2026-11-27;entrees=week-end;erreur=;risque=10.00;maxpos=2;mode=confirmation M5;suivi=H1;ordres_claude=oui;dernier_ordre=TP de NGASCash# déplacé à 3.195 (Ouverture du jour 3.197 et 3.20 avant TP 3.265 hors de portee avant fermeture vendredi 16h - meme TP que le demo);reveil=dernier réveil le 2026.11.27 12:26;coup=disponible ce mois;prioritaires=0;feu_vert=oui;cassure=oui;verrou=1.00R/0.70R (sinon 10/7);version=1.56;reglages=risque 10.0% / positions 2 / pertes max par jour 2 / ratio min 1.50 / gain min 5 / filtre du jour non / stop min 0.70 ATR / preuve max 0.25 ATR / pause annonces 0 min / entrées 3h-16h / vendredi 16h / verrou 1.00R/0.70R (sinon 10/7) / suivi 0.50R 2 H1 / cassures oui / feu vert oui / feu vert anticipé 30 min / coup 30% / pause non / compte réel autorisé oui
+EA;plan=2026-11-27;entrees=week-end;erreur=;risque=10.00;maxpos=2;mode=confirmation M5;suivi=H1;ordres_claude=oui;dernier_ordre=;reveil=;coup=disponible ce mois;prioritaires=0;feu_vert=oui;cassure=oui;verrou=1.00R/0.70R (sinon 10/7);version=1.57;reglages=risque 10.0% / positions 2 / pertes max par jour 2 / ratio min 1.50 / gain min 5 / filtre du jour non / stop min 0.70 ATR / preuve max 0.25 ATR / pause annonces 0 min / entrées 3h-16h / vendredi 16h / verrou 1.00R/0.70R (sinon 10/7) / suivi 0.50R 2 H1 / cassures oui / feu vert oui / feu vert anticipé 30 min / indices US après 09:30 New York / coup 30% / pause non / compte réel autorisé oui
 #ZONE;symbole;sens;zone_bas;zone_haut;sl_jour;tp;tp1;touchee;etat
-ZONE;OILCash#;BUY;85.85;86.15;84.10;89.95;87.55;1;invalidée (stop journalier touché)
-ZONE;BRENTCash#;BUY;94.70;95.05;92.95;99.30;96.45;1;signal M5 ignoré : vendredi soir
+ZONE;OILCash#;BUY;85.85;86.15;84.10;89.95;87.55;0;en attente de la zone
+ZONE;BRENTCash#;BUY;94.70;95.05;92.95;99.30;96.45;0;en attente de la zone
 ZONE;USDJPY#;BUY;159.200;159.300;158.880;160.150;159.800;0;en attente de la zone
-ZONE;US500Cash#;BUY;7240.00;7255.00;7165.00;7420.00;7325.00;1;refusée par Claude (Black Friday XM ferme les indices US vers 15h15 Cayenne avant la fermeture EA de 16h - position bloquee le week-end - zone cassee a l ouverture et TP1 hors de portee)
-ZONE;US100Cash#;BUY;26380.00;26450.00;25930.00;27400.00;26800.00;1;signal ignoré : le lot minimum dépasse le risque autorisé (lot minimum 0.10 = 41.81 de risque pour 9.79 autorisés, 14.69 avec la tolérance de 50 %)
+ZONE;US500Cash#;BUY;7240.00;7255.00;7165.00;7420.00;7325.00;0;en attente de la zone
+ZONE;US100Cash#;BUY;26380.00;26450.00;25930.00;27400.00;26800.00;0;en attente de la zone
 ZONE;GOLD#;SELL;3690.00;3705.00;3745.00;3560.00;3627.00;0;en attente de la zone
-ZONE;NGASCash#;BUY;3.100;3.120;3.045;3.265;3.205;1;ENTRÉE achat 0.14 lot à 3.114, SL 3.045, TP 3.265 (ratio 2.24)
-ZONE;GBPUSD#;BUY;1.30950;1.31100;1.30720;1.31900;1.31400;1;dans la zone, attente de cassure M5 au-dessus de 1.30957
-ZONE;SILVER#;SELL;45.600;45.850;46.900;43.200;44.600;0;objectif atteint sans entrée
+ZONE;NGASCash#;BUY;3.100;3.120;3.045;3.265;3.205;0;en attente de la zone
+ZONE;GBPUSD#;BUY;1.30950;1.31100;1.30720;1.31900;1.31400;0;en attente de la zone
+ZONE;SILVER#;SELL;45.600;45.850;46.900;43.200;44.600;0;en attente de la zone
 #POS;ticket;symbole;type;volume;ouverture_utc;prix_ouverture;sl;tp;prix_actuel;profit;swap;magic;commentaire
 #DEAL;ticket;heure_utc;symbole;type;entree;volume;prix;profit;swap;commission;magic;position;commentaire
 DEAL;482010025;2026-11-23 15:04;BRENTCash#;SELL;IN;0.03;90.87;0.00;0.00;0.00;20261110;464108055;AI:88.40
